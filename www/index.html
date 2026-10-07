@@ -26,7 +26,7 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%}
   box-shadow:0 .08em .3em rgba(0,0,0,.45),inset 0 .06em 0 rgba(255,255,255,.5);cursor:pointer;font-family:inherit}
 #btn:active{transform:translateY(.04em)}
 #btn[disabled]{background:#6b7f6f;color:#cfd9d1;box-shadow:none;cursor:default}
-.chip{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:.3em;background:#fff;color:var(--vert2);font-weight:800;transition:background .3s,color .3s,opacity .3s}
+.chip{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:.3em;background:#fff;color:var(--vert2);font-weight:800;border:max(2px,.07em) solid #D4A62A;transition:background .3s,color .3s,opacity .3s}
 .chip.tire{background:rgba(8,70,32,.65);color:#78af8c}
 .chip.dernier{background:var(--or);color:#0A3D1C}
 .petit{position:absolute;border:1px solid rgba(255,255,255,.35);background:rgba(10,61,28,.55);color:#fff;border-radius:.5em;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
@@ -81,7 +81,8 @@ var VITESSE = 7.2;            // unités / s (1 unité = 1 pouce de la diapo)
 var GRAVITE = 19.4;
 var R_ZONE = 1.30;            // rayon de l'intérieur du bocal
 var R_ANNEAU = 2.5;
-var COL_Y = -2.13;            // embouchure du col, par rapport au centre du bocal
+var COL_Y = -2.13;            // (repère du bocal)
+var JK = 1.10, JY = 0.52;     // échelle et décalage vertical du bocal : il est centré dans l'anneau            // embouchure du col, par rapport au centre du bocal
 var COULEURS = ["#E53935","#FB8C00","#FDD835","#7CB342","#2E7D32","#00897B","#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"];
 
 function lire(k, d){ try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
@@ -317,16 +318,16 @@ function update(dt, now){
         // la boule devient la bulle
         balleChoisie.gone = true;
         bulle.visible = true; bulle.texte = "Choix " + choisi; bulle.alpha = 1;
-        bulle.x = 0; bulle.y = COL_Y; bulle.w = bulle.h = rBille * 2; bulle.adj = 0.5; bulle.e = 0;
+        bulle.x = 0; bulle.y = JY + COL_Y * JK; bulle.w = bulle.h = rBille * 2 * JK; bulle.adj = 0.5; bulle.e = 0;
         phase = "morph"; t0 = now;
       }
       break;
     case "morph":
       q = Math.min(1, t / DUREE_SORTIE);
       e = 1 - Math.pow(1 - q, 3);
-      var d0 = rBille * 2, fy = L.by - L.cy;
+      var d0 = rBille * 2 * JK, y0r = JY + COL_Y * JK, fy = L.by - L.cy;
       bulle.w = d0 + (L.bw - d0) * e; bulle.h = d0 + (L.bh - d0) * e;
-      bulle.x = 0; bulle.y = COL_Y + (fy - COL_Y) * e; bulle.e = e;
+      bulle.x = 0; bulle.y = y0r + (fy - y0r) * e; bulle.e = e;
       for (var k2 = 0; k2 < 2; k2++) simuler(dt / 2, GRAVITE, 6, 0.2, 0.2, false);
       if (q >= 1){
         tire[choisi] = true; dernier = choisi; majChips();
@@ -394,9 +395,11 @@ function dessiner(){
   ctx.save(); ctx.translate(L.cx, L.cy);
   dessinerAnneau(ctx);
   var sortie = (phase === "balleCol") ? balleChoisie : null;
+  ctx.save(); ctx.translate(0, JY); ctx.scale(JK, JK);   // bocal + boules, centrés dans l'anneau
   actives().forEach(function(b){ if (b !== sortie) dessinerBoule(ctx, b); });
   if (imgJar.complete && imgJar.naturalWidth) ctx.drawImage(imgJar, -1.9, -2.55, 3.8, 4.3);
   if (sortie) dessinerBoule(ctx, sortie);            // la boule sort devant le verre
+  ctx.restore();
   dessinerBulle(ctx);
   ctx.restore();
 }
