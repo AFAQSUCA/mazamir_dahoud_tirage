@@ -1,0 +1,7 @@
+{
+  "appId": "ci.mazamir.tirage",
+  "appName": "Tirage Mazamir",
+  "webDir": "www",
+  "backgroundColor": "#0A3D1C",
+  "android": { "allowMixedContent": false }
+}

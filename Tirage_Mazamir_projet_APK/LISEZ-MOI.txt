@@ -1,0 +1,13 @@
+TIRAGE MAZAMIR - construire l'APK
+=================================
+Option A (sans Android Studio) : GitHub
+  1. Creez un depot GitHub et envoyez-y tout ce dossier (y compris .github).
+  2. Onglet "Actions" > "Construire l'APK" > "Run workflow".
+  3. Quand c'est termine, telechargez l'artefact "Tirage-Mazamir-apk" : app-debug.apk.
+Option B (sur votre PC) : Node.js 20 + Android Studio
+  npm install
+  npx cap add android
+  npx cap sync android
+  npx cap open android      (puis Build > Build APK)
+Option C (le plus simple) : PWABuilder
+  Hebergez le dossier "www" (GitHub Pages, Netlify...), puis collez l'adresse sur pwabuilder.com > Package for stores > Android.

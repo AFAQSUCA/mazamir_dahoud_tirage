@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0A3D1C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon-192.png">
+<title>Tirage au sort - Mazamir Dawud</title>
+<style>
+:root{--vert:#0A3D1C;--vert2:#0A5C2B;--or:#D4A62A;--or2:#F0CF6A;--blanc:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--vert);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:#fff}
+body{background:var(--vert) url(assets/bg.jpg) center/cover no-repeat}
+#stage{position:absolute}
+canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+.abs{position:absolute}
+#logo{object-fit:contain}
+#titre{line-height:1.05;font-weight:800;letter-spacing:.06em;color:var(--or)}
+#titre small{display:block;color:#fff;font-weight:500;letter-spacing:.02em}
+#pct{font-weight:800;color:var(--or);text-align:center;font-variant-numeric:tabular-nums}
+#statut{text-align:center;color:#dfeee3;line-height:1.25}
+#btn{border:0;border-radius:999px;background:linear-gradient(#F0CF6A,#D4A62A);color:var(--vert);font-weight:800;letter-spacing:.04em;
+  box-shadow:0 .08em .3em rgba(0,0,0,.45),inset 0 .06em 0 rgba(255,255,255,.5);cursor:pointer;font-family:inherit}
+#btn:active{transform:translateY(.04em)}
+#btn[disabled]{background:#6b7f6f;color:#cfd9d1;box-shadow:none;cursor:default}
+.chip{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:.3em;background:#fff;color:var(--vert2);font-weight:800;transition:background .3s,color .3s,opacity .3s}
+.chip.tire{background:rgba(8,70,32,.65);color:#78af8c}
+.chip.dernier{background:var(--or);color:#0A3D1C}
+.petit{position:absolute;border:1px solid rgba(255,255,255,.35);background:rgba(10,61,28,.55);color:#fff;border-radius:.5em;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.petit:active{background:rgba(212,166,42,.5)}
+#reglages{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:10}
+#reglages.on{display:flex}
+#reglages .carte{background:var(--vert);border:2px solid var(--or);border-radius:16px;padding:20px;width:min(86vw,360px);text-align:center}
+#reglages h2{margin:0 0 6px;color:var(--or);font-size:20px}
+#reglages p{margin:0 0 14px;font-size:14px;color:#cfe3d5}
+.compteur{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px}
+.compteur button{width:48px;height:48px;border-radius:50%;border:2px solid var(--or);background:transparent;color:#fff;font-size:26px;cursor:pointer}
+.compteur output{font-size:34px;font-weight:800;min-width:56px;color:#fff}
+.actions{display:flex;gap:10px;justify-content:center}
+.actions button{padding:10px 18px;border-radius:999px;border:0;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit}
+.ok{background:var(--or);color:var(--vert)}
+.non{background:rgba(255,255,255,.15);color:#fff}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <img id="logo" class="abs" src="assets/logo.png" alt="Logo">
+  <div id="titre" class="abs">MAZAMIR DAWUD<small>Tirage au sort</small></div>
+  <div id="pct" class="abs">0 %</div>
+  <div id="statut" class="abs">Prêt pour le tirage</div>
+  <button id="btn" class="abs">LANCER LE TIRAGE</button>
+  <div id="chips"></div>
+  <button id="bReset" class="petit" title="Réinitialiser">Réinitialiser</button>
+  <button id="bReg" class="petit" title="Réglages">&#9881;</button>
+  <button id="bFs" class="petit" title="Plein écran">&#9974;</button>
+</div>
+
+<div id="reglages">
+  <div class="carte">
+    <h2>Réglages</h2>
+    <p>Nombre de choix à tirer</p>
+    <div class="compteur"><button id="moins">&minus;</button><output id="nb">11</output><button id="plus">+</button></div>
+    <div class="actions"><button class="non" id="annuler">Annuler</button><button class="ok" id="appliquer">Appliquer</button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===================== réglages ===================== */
+var DUREE_JAUGE = 5.0;        // s : durée exacte de la jauge
+var DUREE_RALENTI = 1.8;      // s : les boules s'arrêtent
+var DUREE_BALLE_COL = 0.9;    // s : la boule monte jusqu'au col
+var DUREE_SORTIE = 1.4;       // s : la boule devient bulle et monte
+var DUREE_BULLE = 30.0;       // s : la bulle disparaît ensuite
+var NB_SEG = 100;
+var VITESSE = 7.2;            // unités / s (1 unité = 1 pouce de la diapo)
+var GRAVITE = 19.4;
+var R_ZONE = 1.30;            // rayon de l'intérieur du bocal
+var R_ANNEAU = 2.5;
+var COL_Y = -2.13;            // embouchure du col, par rapport au centre du bocal
+var COULEURS = ["#E53935","#FB8C00","#FDD835","#7CB342","#2E7D32","#00897B","#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"];
+
+function lire(k, d){ try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+function ecrire(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+
+var N = Math.max(1, Math.min(40, parseInt(lire("mazamir_n", "11"), 10) || 11));
+
+/* ===================== éléments ===================== */
+function $(id){ return document.getElementById(id); }
+var stage = $("stage"), cv = $("cv"), ctx = cv.getContext("2d");
+var elLogo = $("logo"), elTitre = $("titre"), elPct = $("pct"), elStatut = $("statut"), elBtn = $("btn"), elChips = $("chips");
+var bReset = $("bReset"), bReg = $("bReg"), bFs = $("bFs");
+var imgJar = new Image(); imgJar.src = "assets/jar.png";
+
+/* ===================== mise en page ===================== */
+var u = 100, dpr = 1, L = {};
+function place(el, x, y, w, h){
+  el.style.left = (x * u) + "px"; el.style.top = (y * u) + "px";
+  if (w !== undefined) el.style.width = (w * u) + "px";
+  if (h !== undefined) el.style.height = (h * u) + "px";
+}
+function layout(){
+  var W = window.innerWidth, H = window.innerHeight;
+  var land = W / H >= 1.1;
+  var uw = land ? 13.333 : 7.5, uh = land ? 7.5 : 13.333;
+  u = Math.min(W / uw, H / uh);
+  stage.style.width = (uw * u) + "px"; stage.style.height = (uh * u) + "px";
+  stage.style.left = ((W - uw * u) / 2) + "px"; stage.style.top = ((H - uh * u) / 2) + "px";
+  dpr = Math.min(window.devicePixelRatio || 1, 3);
+  cv.width = Math.round(uw * u * dpr); cv.height = Math.round(uh * u * dpr);
+
+  L.land = land; L.uw = uw; L.uh = uh;
+  L.cx = land ? 4.9 : 3.75;  L.cy = land ? 4.75 : 6.0;
+  L.by = land ? 1.2 : 2.3;                 // centre final de la bulle (absolu)
+  L.bw = 3.6; L.bh = 1.2;
+
+  var btnFont = 0.30 * u;
+  if (land){
+    place(elLogo, 8.4, 0.4, 0.9, 1.13);
+    place(elTitre, 9.5, 0.55, 3.5, 0.9); elTitre.style.fontSize = (0.34 * u) + "px"; elTitre.querySelector("small").style.fontSize = (0.30 * u) + "px";
+    place(elPct, 8.4, 2.0, 4.4, 0.9); elPct.style.fontSize = (0.78 * u) + "px";
+    place(elStatut, 8.4, 2.95, 4.4, 0.6); elStatut.style.fontSize = (0.21 * u) + "px";
+    place(elBtn, 8.6, 3.75, 4.0, 0.95);
+    L.chipX = 8.4; L.chipY = 5.05; L.chipPerRow = 5; L.chipW = 0.76; L.chipH = 0.5; L.chipGap = 0.15;
+    place(bReset, 10.7, 0.12, 1.5, 0.4); place(bReg, 12.25, 0.12, 0.4, 0.4); place(bFs, 12.7, 0.12, 0.4, 0.4);
+  } else {
+    place(elLogo, 0.3, 0.3, 0.7, 0.88);
+    place(elTitre, 1.15, 0.42, 4.5, 0.8); elTitre.style.fontSize = (0.25 * u) + "px"; elTitre.querySelector("small").style.fontSize = (0.24 * u) + "px";
+    place(elPct, 1.25, 9.0, 5.0, 0.9); elPct.style.fontSize = (0.8 * u) + "px";
+    place(elStatut, 0.5, 9.9, 6.5, 0.6); elStatut.style.fontSize = (0.24 * u) + "px";
+    place(elBtn, 1.2, 10.6, 5.1, 0.95);
+    L.chipX = 0.45; L.chipY = 11.85; L.chipPerRow = 7; L.chipW = 0.8; L.chipH = 0.5; L.chipGap = 0.1;
+    place(bReset, 4.1, 0.12, 1.7, 0.45); place(bReg, 5.95, 0.12, 0.45, 0.45); place(bFs, 6.5, 0.12, 0.45, 0.45);
+  }
+  elBtn.style.fontSize = btnFont + "px";
+  [bReset, bReg, bFs].forEach(function(b){ b.style.fontSize = (0.2 * u) + "px"; });
+  placerChips();
+}
+
+function placerChips(){
+  var chips = elChips.children;
+  var perRow = L.chipPerRow, w = L.chipW, h = L.chipH, g = L.chipGap;
+  var rows = Math.ceil(N / perRow);
+  // si trop de lignes, on compresse
+  var maxRows = L.land ? 4 : 3;
+  var hh = h, gg = g;
+  if (rows > maxRows){ hh = h * maxRows / rows; gg = g * maxRows / rows; }
+  for (var i = 0; i < chips.length; i++){
+    var r = Math.floor(i / perRow), c = i % perRow;
+    var x = L.chipX + c * (w + g), y = L.chipY + r * (hh + gg);
+    var el = chips[i];
+    el.style.left = (x * u) + "px"; el.style.top = (y * u) + "px";
+    el.style.width = (w * u) + "px"; el.style.height = (hh * u) + "px";
+    el.style.fontSize = (0.3 * Math.min(1, hh / h) * u) + "px";
+  }
+}
+function construireChips(){
+  elChips.innerHTML = "";
+  for (var i = 1; i <= N; i++){
+    var d = document.createElement("div"); d.className = "chip"; d.textContent = i; elChips.appendChild(d);
+  }
+}
+
+/* ===================== boules ===================== */
+var balls = [];          // {x,y,vx,vy,num,gone,sprite} ; x,y relatifs au centre du bocal
+var rBille = 0.22;
+var tire = [];           // tire[i] = true si le choix i a déjà été tiré
+var dernier = 0;
+
+function sprite(num){
+  var s = 160, c = document.createElement("canvas"); c.width = c.height = s; var g = c.getContext("2d");
+  var col = num <= COULEURS.length ? COULEURS[num - 1] : "hsl(" + ((num * 47) % 360) + ",70%,50%)";
+  var gr = g.createRadialGradient(s * 0.36, s * 0.32, s * 0.04, s / 2, s / 2, s * 0.5);
+  gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.18, col); gr.addColorStop(1, "rgba(0,0,0,0.55)");
+  g.fillStyle = col; g.beginPath(); g.arc(s / 2, s / 2, s * 0.48, 0, 7); g.fill();
+  g.fillStyle = gr; g.beginPath(); g.arc(s / 2, s / 2, s * 0.48, 0, 7); g.fill();
+  g.fillStyle = "rgba(255,255,255,0.96)"; g.beginPath(); g.arc(s / 2, s / 2 + s * 0.02, s * 0.25, 0, 7); g.fill();
+  g.fillStyle = "#0A3D1C"; g.font = "800 " + (num > 9 ? s * 0.27 : s * 0.33) + "px 'Segoe UI',Arial,sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(num), s / 2, s / 2 + s * 0.03);
+  g.strokeStyle = "rgba(255,255,255,0.55)"; g.lineWidth = s * 0.02; g.beginPath(); g.arc(s / 2, s / 2, s * 0.47, 0, 7); g.stroke();
+  return c;
+}
+function creerBoules(){
+  balls = []; tire = [];
+  rBille = Math.min(0.22, R_ZONE * Math.sqrt(0.36 / N));
+  for (var i = 1; i <= N; i++){ tire[i] = false; balls.push({ x: 0, y: 0, vx: 0, vy: 0, num: i, gone: false, sprite: sprite(i) }); }
+  rassembler();
+}
+function actives(){ return balls.filter(function(b){ return !b.gone; }); }
+
+function simuler(dt, grav, amort, eMur, eBille, agite){
+  var A = actives(), i, j, b, dx, dy, d, nx, ny, vn, imp, v, f, lim = R_ZONE - rBille;
+  for (i = 0; i < A.length; i++){
+    b = A[i];
+    b.vy += grav * dt;
+    if (agite){
+      b.vx += (Math.random() - 0.5) * 125 * dt; b.vy += (Math.random() - 0.5) * 125 * dt;
+      v = Math.hypot(b.vx, b.vy);
+      if (v < 0.7 * VITESSE){
+        if (v < 0.001){ b.vx = VITESSE; b.vy = 0; v = VITESSE; }
+        f = 0.7 * VITESSE / v; b.vx *= f; b.vy *= f;
+      } else if (v > 1.3 * VITESSE){ f = 1.3 * VITESSE / v; b.vx *= f; b.vy *= f; }
+    }
+    if (amort > 0){ f = Math.exp(-amort * dt); b.vx *= f; b.vy *= f; }
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    d = Math.hypot(b.x, b.y);
+    if (d > lim && d > 0){
+      nx = b.x / d; ny = b.y / d; b.x = nx * lim; b.y = ny * lim;
+      vn = b.vx * nx + b.vy * ny;
+      if (vn > 0){ b.vx -= (1 + eMur) * vn * nx; b.vy -= (1 + eMur) * vn * ny; }
+    }
+  }
+  for (i = 0; i < A.length - 1; i++){
+    for (j = i + 1; j < A.length; j++){
+      var p = A[i], q = A[j];
+      dx = q.x - p.x; dy = q.y - p.y; d = Math.hypot(dx, dy);
+      if (d < 2 * rBille){
+        if (d < 0.0001){ dx = 1; dy = 0; d = 1; }
+        nx = dx / d; ny = dy / d; f = (2 * rBille - d) / 2;
+        p.x -= nx * f; p.y -= ny * f; q.x += nx * f; q.y += ny * f;
+        vn = (q.vx - p.vx) * nx + (q.vy - p.vy) * ny;
+        if (vn < 0){ imp = -(1 + eBille) * vn / 2; p.vx -= imp * nx; p.vy -= imp * ny; q.vx += imp * nx; q.vy += imp * ny; }
+      }
+    }
+  }
+}
+function rassembler(){
+  var A = actives(), i, k;
+  for (i = 0; i < A.length; i++){
+    var a = Math.random() * 6.2832, d = Math.random() * (R_ZONE - rBille) * 0.7;
+    A[i].x = Math.cos(a) * d; A[i].y = Math.sin(a) * d; A[i].vx = 0; A[i].vy = 0;
+  }
+  for (k = 0; k < 360; k++) simuler(1 / 60, GRAVITE, 6, 0.2, 0.2, false);
+  for (i = 0; i < A.length; i++){ A[i].vx = 0; A[i].vy = 0; }
+}
+
+/* ===================== machine à états ===================== */
+var phase = "repos";     // repos, agit, calme, balleCol, morph, bulle, fondu
+var t0 = 0, pctAff = 0, choisi = 0, balleChoisie = null, reste = 0;
+var bulle = { visible: false, x: 0, y: 0, w: 0, h: 0, adj: 0.5, e: 0, alpha: 1, texte: "" };
+var segAllumes = 0;
+var wp = { x: 0, y: 0 };  // point d'appel sous le col
+var dep = { x: 0, y: 0 };
+
+function setStatut(t){ elStatut.textContent = t; }
+function setBouton(t, off){ elBtn.textContent = t; elBtn.disabled = !!off; }
+function restants(){ var r = []; for (var i = 1; i <= N; i++) if (!tire[i]) r.push(i); return r; }
+function occupe(){ return phase === "agit" || phase === "calme" || phase === "balleCol" || phase === "morph"; }
+
+function lancer(){
+  if (occupe()) return;
+  var r = restants();
+  if (r.length === 0){ setStatut("Tous les choix ont été tirés — appuie sur Réinitialiser"); return; }
+  choisi = r[Math.floor(Math.random() * r.length)];
+  reste = r.length - 1;
+  bulle.visible = false;
+  segAllumes = 0; pctAff = -1; majPct(0);
+  actives().forEach(function(b){ var a = Math.random() * 6.2832; b.vx = Math.cos(a) * VITESSE; b.vy = Math.sin(a) * VITESSE; });
+  setStatut("Tirage au sort en cours…"); setBouton("TIRAGE EN COURS…", true);
+  phase = "agit"; t0 = performance.now() / 1000;
+  try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+}
+function reinitialiser(){
+  phase = "repos"; bulle.visible = false; dernier = 0; segAllumes = 0;
+  for (var i = 1; i <= N; i++) tire[i] = false;
+  balls.forEach(function(b){ b.gone = false; });
+  rassembler(); majChips(); majPct(0);
+  setStatut("Prêt pour le tirage (" + N + " choix)"); setBouton("LANCER LE TIRAGE", false);
+}
+function majPct(p){ if (p !== pctAff){ pctAff = p; elPct.textContent = p + " %"; } }
+function majChips(){
+  var c = elChips.children;
+  for (var i = 1; i <= N; i++){
+    c[i - 1].className = "chip" + (tire[i] ? (i === dernier ? " dernier" : " tire") : "");
+  }
+}
+
+function update(dt, now){
+  var t = now - t0, q, e;
+  if (dt > 1 / 30) dt = 1 / 30;
+  switch (phase){
+    case "repos":
+      for (var k = 0; k < 3; k++) simuler(dt / 3, GRAVITE, 4, 0.2, 0.2, false);
+      break;
+    case "agit":
+      if (t > DUREE_JAUGE) t = DUREE_JAUGE;
+      for (var s = 0; s < 4; s++) simuler(dt / 4, 0, 0, 1, 1, true);
+      segAllumes = Math.min(NB_SEG, Math.floor(t / DUREE_JAUGE * NB_SEG + 1e-6));
+      majPct(Math.min(100, Math.floor(t / DUREE_JAUGE * 100 + 1e-6)));
+      if (t >= DUREE_JAUGE){ segAllumes = NB_SEG; majPct(100); setStatut("Le bocal se calme…"); phase = "calme"; t0 = now; }
+      break;
+    case "calme":
+      if (t > DUREE_RALENTI) t = DUREE_RALENTI;
+      q = t / DUREE_RALENTI;
+      var g = Math.min(GRAVITE, GRAVITE * q * 2);
+      for (var s2 = 0; s2 < 4; s2++) simuler(dt / 4, g, 1.5 + 8 * q, 0.35, 0.3, false);
+      if (t >= DUREE_RALENTI){
+        for (var z = 0; z < 12; z++) simuler(0.004, GRAVITE, 30, 0.1, 0.1, false);
+        actives().forEach(function(b){ b.vx = 0; b.vy = 0; });
+        balleChoisie = balls[choisi - 1];
+        dep.x = balleChoisie.x; dep.y = balleChoisie.y;
+        wp.x = 0; wp.y = Math.min(dep.y, -R_ZONE + rBille);
+        phase = "balleCol"; t0 = now;
+      }
+      break;
+    case "balleCol":
+      q = Math.min(1, t / DUREE_BALLE_COL);
+      var cx, cy, u2;
+      if (q < 0.55){ u2 = q / 0.55; e = u2 * u2 * (3 - 2 * u2); cx = dep.x + (wp.x - dep.x) * e; cy = dep.y + (wp.y - dep.y) * e; }
+      else { u2 = (q - 0.55) / 0.45; e = u2 * u2; cx = wp.x + (0 - wp.x) * e; cy = wp.y + (COL_Y - wp.y) * e; }
+      balleChoisie.x = cx; balleChoisie.y = cy;
+      if (q >= 1){
+        // la boule devient la bulle
+        balleChoisie.gone = true;
+        bulle.visible = true; bulle.texte = "Choix " + choisi; bulle.alpha = 1;
+        bulle.x = 0; bulle.y = COL_Y; bulle.w = bulle.h = rBille * 2; bulle.adj = 0.5; bulle.e = 0;
+        phase = "morph"; t0 = now;
+      }
+      break;
+    case "morph":
+      q = Math.min(1, t / DUREE_SORTIE);
+      e = 1 - Math.pow(1 - q, 3);
+      var d0 = rBille * 2, fy = L.by - L.cy;
+      bulle.w = d0 + (L.bw - d0) * e; bulle.h = d0 + (L.bh - d0) * e;
+      bulle.x = 0; bulle.y = COL_Y + (fy - COL_Y) * e; bulle.e = e;
+      for (var k2 = 0; k2 < 2; k2++) simuler(dt / 2, GRAVITE, 6, 0.2, 0.2, false);
+      if (q >= 1){
+        tire[choisi] = true; dernier = choisi; majChips();
+        if (reste > 0){ setStatut("Choix " + choisi + " tiré — " + reste + " choix restant(s)"); setBouton("TIRER LE SUIVANT", false); }
+        else { setStatut("Tous les choix ont été tirés"); setBouton("TIRAGE TERMINÉ", true); }
+        phase = "bulle"; t0 = now;
+      }
+      break;
+    case "bulle":
+      for (var k3 = 0; k3 < 2; k3++) simuler(dt / 2, GRAVITE, 6, 0.2, 0.2, false);
+      if (t >= DUREE_BULLE){ phase = "fondu"; t0 = now; }
+      break;
+    case "fondu":
+      q = Math.min(1, t / 0.5); bulle.alpha = 1 - q;
+      if (q >= 1){
+        bulle.visible = false; phase = "repos";
+        if (reste > 0) setStatut(reste + " choix restant(s)");
+      }
+      break;
+  }
+}
+
+/* ===================== dessin ===================== */
+function rrect(g, x, y, w, h, r){
+  r = Math.min(r, w / 2, h / 2);
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+function dessinerAnneau(g){
+  var seg = 6.2832 / NB_SEG, gap = seg * 0.18, i;
+  g.lineWidth = 0.13; g.lineCap = "butt";
+  for (i = 0; i < NB_SEG; i++){
+    var a0 = -1.5708 + i * seg + gap / 2, a1 = -1.5708 + (i + 1) * seg - gap / 2;
+    g.beginPath(); g.arc(0, 0, R_ANNEAU, a0, a1);
+    if (i < segAllumes){ g.strokeStyle = "#D4A62A"; g.shadowColor = "rgba(240,207,106,0.9)"; g.shadowBlur = 0.12 * u * dpr; }
+    else { g.strokeStyle = "rgba(255,255,255,0.20)"; g.shadowBlur = 0; }
+    g.stroke();
+  }
+  g.shadowBlur = 0;
+}
+function dessinerBoule(g, b){
+  g.save(); g.globalAlpha = 1;
+  g.shadowColor = "rgba(0,0,0,0.35)"; g.shadowBlur = 0.06 * u * dpr; g.shadowOffsetY = 0.02 * u * dpr;
+  g.drawImage(b.sprite, b.x - rBille, b.y - rBille, rBille * 2, rBille * 2);
+  g.restore();
+}
+function dessinerBulle(g){
+  if (!bulle.visible) return;
+  g.save(); g.globalAlpha = bulle.alpha;
+  var x = bulle.x - bulle.w / 2, y = bulle.y - bulle.h / 2;
+  g.shadowColor = "rgba(0,0,0,0.5)"; g.shadowBlur = 0.2 * u * dpr; g.shadowOffsetY = 0.06 * u * dpr;
+  rrect(g, x, y, bulle.w, bulle.h, Math.min(bulle.w, bulle.h) * 0.5);
+  g.fillStyle = "#fff"; g.fill();
+  g.shadowColor = "transparent"; g.lineWidth = 0.05; g.strokeStyle = "#D4A62A"; g.stroke();
+  var fs = 0.5 * bulle.e;
+  if (fs > 0.05){
+    g.fillStyle = "#0A3D1C"; g.font = "800 " + fs + "px 'Segoe UI',system-ui,Arial,sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(bulle.texte, bulle.x, bulle.y + fs * 0.04);
+  }
+  g.restore();
+}
+function dessiner(){
+  ctx.setTransform(dpr * u, 0, 0, dpr * u, 0, 0);
+  ctx.clearRect(0, 0, L.uw, L.uh);
+  ctx.save(); ctx.translate(L.cx, L.cy);
+  dessinerAnneau(ctx);
+  var sortie = (phase === "balleCol") ? balleChoisie : null;
+  actives().forEach(function(b){ if (b !== sortie) dessinerBoule(ctx, b); });
+  if (imgJar.complete && imgJar.naturalWidth) ctx.drawImage(imgJar, -1.9, -2.55, 3.8, 4.3);
+  if (sortie) dessinerBoule(ctx, sortie);            // la boule sort devant le verre
+  dessinerBulle(ctx);
+  ctx.restore();
+}
+
+/* ===================== boucle ===================== */
+var tPrec = 0;
+function boucle(ts){
+  var now = ts / 1000;
+  if (!tPrec) tPrec = now;
+  var dt = now - tPrec; tPrec = now;
+  update(dt, now);
+  dessiner();
+  requestAnimationFrame(boucle);
+}
+
+/* ===================== interface ===================== */
+elBtn.addEventListener("click", lancer);
+bReset.addEventListener("click", reinitialiser);
+bFs.addEventListener("click", function(){
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  } catch (e) {}
+});
+var tmpN = N;
+bReg.addEventListener("click", function(){ tmpN = N; $("nb").textContent = tmpN; $("reglages").classList.add("on"); });
+$("moins").addEventListener("click", function(){ tmpN = Math.max(1, tmpN - 1); $("nb").textContent = tmpN; });
+$("plus").addEventListener("click", function(){ tmpN = Math.min(40, tmpN + 1); $("nb").textContent = tmpN; });
+$("annuler").addEventListener("click", function(){ $("reglages").classList.remove("on"); });
+$("appliquer").addEventListener("click", function(){
+  $("reglages").classList.remove("on");
+  if (tmpN !== N){ N = tmpN; ecrire("mazamir_n", String(N)); phase = "repos"; construireChips(); creerBoules(); layout(); reinitialiser(); }
+});
+document.addEventListener("keydown", function(ev){
+  if (ev.key === " " || ev.key === "Enter"){ ev.preventDefault(); lancer(); }
+  else if (ev.key === "r" || ev.key === "R"){ reinitialiser(); }
+});
+window.addEventListener("resize", layout);
+window.addEventListener("orientationchange", function(){ setTimeout(layout, 200); });
+try { if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(function(){}); } catch (e) {}
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+
+construireChips(); creerBoules(); layout(); reinitialiser();
+requestAnimationFrame(boucle);
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "tirage-mazamir",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tirage au sort - Mazamir Dawud",
+  "scripts": { "android": "npx cap add android && npx cap sync android" },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/cli": "^6.1.0",
+    "@capacitor/core": "^6.1.0"
+  }
+}
