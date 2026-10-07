@@ -14,6 +14,8 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - run: npm install
       - run: npx cap add android
+      - name: Icone et ecran de demarrage (logo du concours)
+        run: npx --yes @capacitor/assets generate --android --iconBackgroundColor '#0A3D1C' --iconBackgroundColorDark '#0A3D1C' --splashBackgroundColor '#0A3D1C' --splashBackgroundColorDark '#0A3D1C'
       - run: npx cap sync android
       - name: Compiler
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
