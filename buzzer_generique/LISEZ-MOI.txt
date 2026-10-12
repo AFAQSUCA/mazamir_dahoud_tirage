@@ -1,0 +1,14 @@
+BUZZER GENERIQUE (jury / equipes)
+=================================
+Application web en un seul fichier : Buzzer_Jury_generique.html (fonctionne hors ligne).
+Chaque organisateur choisit son nom, son logo, son theme (couleurs tirees du logo ou theme pret a l'emploi),
+la langue (FR / EN / AR), le son, et le mode :
+  - Jury : un buzzer + compteur d'erreurs
+  - Equipes, un seul ecran : une zone par equipe, la premiere qui appuie prend la main
+  - Equipes, un appareil par equipe : necessite le serveur Node.js du dossier serveur/ (voir serveur/LISEZ-MOI.txt)
+
+Dossiers
+  serveur/   serveur Node.js sans dependance (serveur.js, moteur.js) + copie de la page + lancer_serveur.bat
+  src/       sources : moteur.js (regles du jeu, partage page/serveur), equipes.js, app_base.html, patch.py, build.py
+Reconstruire la page apres modification des sources (depuis ce dossier) :
+  python3 src/patch.py && python3 src/build.py

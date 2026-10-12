@@ -1,0 +1,38 @@
+BUZZER DU JURY / DES EQUIPES  -  mode "un appareil par equipe"
+================================================================
+
+Les modes "Jury" et "Equipes - un seul ecran" n'ont besoin de RIEN : ouvrez simplement
+Buzzer_Jury_generique.html dans un navigateur (ordinateur, tablette, telephone). Aucun serveur.
+
+Le mode "Equipes - un appareil par equipe" (chaque equipe buzze avec son telephone) a besoin
+d'un petit serveur sur l'ordinateur de l'animateur. Il fonctionne sans Internet : il suffit
+que tous les appareils soient sur le meme reseau Wi-Fi (le partage de connexion d'un telephone convient).
+
+INSTALLATION (une seule fois)
+  1. Installer Node.js (version LTS) : https://nodejs.org
+  2. Garder ensemble, dans le meme dossier : serveur.js, moteur.js, Buzzer_Jury_generique.html
+
+LANCEMENT
+  - Windows : double-clic sur  lancer_serveur.bat
+  - Mac / Linux : dans un terminal :  node serveur.js
+  La fenetre affiche trois choses :
+     Animateur (cet ordinateur)  : http://localhost:3000/
+     Equipes (telephones)        : http://192.168.x.x:3000/?r=equipe
+     Code animateur              : 4 chiffres
+
+DEROULEMENT
+  1. Sur l'ordinateur : ouvrir l'adresse "Animateur". Dans la roue ⚙ > Mode, choisir
+     "Equipes - un appareil par equipe". Regler les equipes (noms, couleurs, points, chrono).
+  2. Sur chaque telephone : ouvrir l'adresse "Equipes", puis choisir son equipe.
+     Les telephones prennent automatiquement le nom, le logo et les couleurs du concours.
+  3. L'animateur appuie sur "Ouvrir la question". La premiere equipe qui appuie prend la main
+     (nom affiche en grand, son joue sur tous les appareils, les autres sont bloquees).
+  4. L'animateur valide : "Bonne reponse" (points) ou "Mauvaise reponse" (l'equipe est bloquee
+     et les autres peuvent buzzer), puis "Question suivante".
+
+REMARQUES
+  - Pour piloter depuis un AUTRE appareil que l'ordinateur du serveur, ouvrir l'adresse "Equipes"
+    sans ?r=equipe, c'est-a-dire http://192.168.x.x:3000/ : le code animateur sera demande.
+  - Le port peut etre change :  PORT=8080 node serveur.js   (Windows : set PORT=8080 puis node serveur.js).
+  - Pare-feu Windows : a la premiere execution, autoriser Node.js sur les reseaux prives.
+  - Les scores restent en memoire tant que le serveur tourne ; fermer la fenetre les efface.

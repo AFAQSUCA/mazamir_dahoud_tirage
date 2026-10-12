@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0A3D1C">
+<title>Buzzer du jury</title>
+<link rel="icon" id="favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23e53935'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg1:#14602d;--bg2:#06280f;--acc:#E9C45A;--acc2:#F6D978;--accd:#B8861B;
+  --txt:#fff;--sub:#d6ead9;--btn1:#ff8a80;--btn2:#e53935;--btn3:#b71c1c;--btn4:#7f0000;
+  --panel:rgba(0,0,0,.30);--line:rgba(255,255,255,.22)
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:var(--txt);touch-action:manipulation}
+body{background:radial-gradient(120% 90% at 50% 0%,var(--bg1) 0,var(--bg2) 100%);display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
+  background-image:repeating-linear-gradient(45deg,var(--acc) 0 1px,transparent 1px 22px),repeating-linear-gradient(-45deg,var(--acc) 0 1px,transparent 1px 22px)}
+#flash{position:fixed;inset:0;background:radial-gradient(circle,rgba(255,40,40,.55),rgba(160,0,0,.75));opacity:0;pointer-events:none;transition:opacity .5s ease-out;z-index:5}
+#flash.on{opacity:1;transition:none}
+header{position:relative;display:flex;align-items:center;gap:10px 14px;padding:12px 18px;flex-wrap:wrap}
+#logo{height:min(11vh,72px);max-width:22vw;object-fit:contain;display:none}
+#logo.on{display:block}
+#badge{height:min(11vh,64px);width:min(11vh,64px);border-radius:50%;display:none;align-items:center;justify-content:center;
+  background:linear-gradient(var(--acc2),var(--accd));color:var(--bg2);font-weight:900;font-size:min(5vh,30px)}
+#badge.on{display:flex}
+header h1{margin:0;font-size:clamp(16px,3.2vw,30px);letter-spacing:.06em;color:var(--acc);line-height:1.1;text-transform:uppercase}
+header h1 small{display:block;color:var(--txt);font-weight:500;letter-spacing:.02em;font-size:.62em;text-transform:none}
+.sp{flex:1}
+.tool{background:rgba(255,255,255,.10);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px 14px;font-size:clamp(13px,2vw,17px);cursor:pointer;font-family:inherit}
+.tool:active{background:rgba(255,255,255,.22)}
+main{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;min-height:0;padding:0 16px 12px}
+#btn{width:min(72vw,60vh);height:min(72vw,60vh);border-radius:50%;border:0;cursor:pointer;position:relative;
+  background:radial-gradient(circle at 36% 30%,var(--btn1) 0,var(--btn2) 30%,var(--btn3) 70%,var(--btn4) 100%);
+  box-shadow:0 0 0 .9vmin var(--acc),0 0 0 1.5vmin rgba(0,0,0,.35),0 3vmin 6vmin rgba(0,0,0,.55),inset 0 -3vmin 6vmin rgba(0,0,0,.35),inset 0 2vmin 4vmin rgba(255,255,255,.25);
+  color:#fff;font-family:inherit;font-weight:900;letter-spacing:.06em;font-size:min(9vw,9vh);text-shadow:0 .08em .2em rgba(0,0,0,.5);transition:transform .06s;padding:0 6%}
+#btn small{display:block;font-size:.34em;font-weight:600;letter-spacing:.03em;opacity:.92;margin-top:.3em;line-height:1.2}
+#btn:active,#btn.press{transform:scale(.955);box-shadow:0 0 0 .9vmin var(--acc),0 0 0 1.5vmin rgba(0,0,0,.35),0 1vmin 2vmin rgba(0,0,0,.55),inset 0 -1.5vmin 3vmin rgba(0,0,0,.45)}
+#cpt{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px 8px 6px 18px}
+#cpt b{font-size:min(8vw,7vh);color:var(--acc2);min-width:1.4em;text-align:center;font-variant-numeric:tabular-nums}
+#cpt span{font-size:clamp(14px,2.6vw,22px)}
+#cpt button{width:44px;height:44px;border-radius:12px;font-size:20px;padding:0}
+#msg{height:1.4em;color:var(--sub);font-size:clamp(12px,2vw,16px)}
+@media (max-width:640px){header{padding:10px 12px}header .sp{flex-basis:100%;height:0;order:5}header .tool{order:6;flex:1;padding:9px 6px}header h1{flex:1;min-width:0}}
+@media (orientation:landscape){main{flex-direction:row;gap:5vw}#btn{width:min(62vh,50vw);height:min(62vh,50vw)}}
+
+/* fenetre de reglages */
+#reg{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:10;padding:12px}
+#reg.on{display:flex}
+#boite{width:min(96vw,540px);max-height:94vh;display:flex;flex-direction:column;background:linear-gradient(160deg,var(--bg1),var(--bg2));border:1px solid var(--line);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden}
+#boite h2{margin:0;padding:16px 18px 6px;color:var(--acc);font-size:20px;letter-spacing:.04em}
+#onglets{display:flex;gap:6px;padding:6px 14px 0;overflow-x:auto}
+#onglets button{flex:none;background:transparent;border:0;border-bottom:3px solid transparent;color:var(--sub);font:600 15px inherit;font-family:inherit;padding:10px 10px;cursor:pointer}
+#onglets button.on{color:var(--acc2);border-bottom-color:var(--acc)}
+#corps{padding:14px 18px;overflow:auto;flex:1;min-height:0}
+.pane{display:none}.pane.on{display:block}
+label.f{display:block;margin:0 0 14px;font-size:14px;color:var(--sub)}
+label.f input[type=text],label.f select{display:block;width:100%;margin-top:5px;padding:11px 12px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.28);color:var(--txt);font-family:inherit}
+label.f input[type=text]:focus{outline:2px solid var(--acc)}
+.logoLigne{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+#apercuLogo{width:70px;height:70px;border-radius:14px;border:1px dashed var(--line);object-fit:contain;background:rgba(255,255,255,.08);flex:none}
+.btnS{background:rgba(255,255,255,.12);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 13px;font-size:14px;cursor:pointer;font-family:inherit}
+.btnS:active{background:rgba(255,255,255,.25)}
+.aide{font-size:12.5px;color:var(--sub);opacity:.85;margin:-6px 0 14px;line-height:1.35}
+#themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;margin-bottom:12px}
+.th{border:2px solid transparent;border-radius:14px;padding:8px;cursor:pointer;background:rgba(0,0,0,.22);text-align:center;font-size:13px}
+.th.sel{border-color:var(--acc);background:rgba(255,255,255,.1)}
+.th i{display:block;height:38px;border-radius:9px;margin-bottom:6px;position:relative}
+.th i b{position:absolute;right:6px;bottom:6px;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.7)}
+.coul{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.coul label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--sub)}
+input[type=color]{width:46px;height:36px;border:1px solid var(--line);border-radius:8px;background:none;padding:2px;cursor:pointer}
+.snd{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.snd.sel{background:rgba(255,255,255,.12);border-color:var(--acc)}
+.snd .pt{width:18px;height:18px;border-radius:50%;border:2px solid var(--acc);flex:none}
+.snd.sel .pt{background:var(--acc)}
+.snd .nom{flex:1;font-size:16px}.snd .nom small{display:block;opacity:.7;font-size:12px}
+.vol{display:flex;align-items:center;gap:10px;margin:12px 4px 4px}.vol input{flex:1;accent-color:var(--acc)}
+.rangee{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+#ferme{margin:0 18px 16px;padding:13px;font-size:16px;font-weight:700;border:0;border-radius:12px;background:linear-gradient(var(--acc2),var(--accd));color:#1a1a1a;cursor:pointer;font-family:inherit}
+
+/* modes equipes */
+#mainEq{position:relative;flex:1;display:none;flex-direction:column;gap:1.4vh;padding:0 16px 14px;min-height:0}
+#mainEq.on{display:flex}
+#eqBar{text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+#eqStatus{font-size:clamp(20px,4.2vw,40px);font-weight:800;color:var(--acc2);padding:2px 22px;border-radius:999px;min-height:1.3em;transition:background .2s}
+#eqInfo{font-size:clamp(12px,1.8vw,15px);color:var(--sub);word-break:break-all}
+#eqZones{flex:1;min-height:0;display:grid;gap:2vmin;grid-template-columns:repeat(var(--cols,2),1fr);grid-auto-rows:1fr}
+.zone{border:0;border-radius:3vmin;color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3em;min-height:0;min-width:0;
+  background:radial-gradient(circle at 36% 30%,var(--z1),var(--z) 62%,var(--z2));
+  box-shadow:0 0 0 .7vmin rgba(255,255,255,.35),0 2vmin 4vmin rgba(0,0,0,.5),inset 0 -2vmin 4vmin rgba(0,0,0,.25),inset 0 1.5vmin 3vmin rgba(255,255,255,.25);transition:transform .06s,filter .2s,opacity .2s}
+.zone:active{transform:scale(.97)}
+.zone .zn{font-size:clamp(20px,5.5vw,64px);font-weight:900;text-shadow:0 .06em .18em rgba(0,0,0,.55);padding:0 .3em;text-align:center;line-height:1.05}
+.zone .zs{font-size:clamp(18px,3.8vw,42px);font-weight:800;background:rgba(0,0,0,.3);padding:.05em .7em;border-radius:999px;font-variant-numeric:tabular-nums}
+.zone.off{filter:grayscale(.8) brightness(.55);cursor:default}
+.zone.out{filter:grayscale(1) brightness(.38);cursor:default}
+.zone.lose{opacity:.4;cursor:default}
+.zone.win{box-shadow:0 0 0 1vmin #fff,0 0 7vmin var(--z),inset 0 1.5vmin 3vmin rgba(255,255,255,.3);animation:gagne .7s ease-in-out infinite alternate}
+@keyframes gagne{from{transform:scale(1)}to{transform:scale(1.025)}}
+#mainEq.hote .zone,#mainEq.hote .zone:active{cursor:default;transform:none}
+#eqScores{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{display:flex;align-items:center;gap:6px;border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 6px 4px 12px;font-size:clamp(13px,2vw,17px)}
+.chip i{font-style:normal;font-weight:800;min-width:1.6em;text-align:center;color:var(--acc2);font-variant-numeric:tabular-nums}
+.chip button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.1);color:var(--txt);font-size:16px;cursor:pointer;padding:0}
+#eqCtl{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#eqCtl .tool{font-weight:700;padding:12px 18px;font-size:clamp(14px,2.2vw,19px)}
+#eqCtl .tool[disabled]{opacity:.35;cursor:default}
+#g_open{background:linear-gradient(var(--acc2),var(--accd));color:#1a1a1a;border:0}
+#g_good{background:#2e7d32;border-color:#66bb6a}#g_bad{background:#c62828;border-color:#ef5350}
+#join{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:9;padding:14px}
+#join.on{display:flex}
+#joinBox{width:min(94vw,440px);background:linear-gradient(160deg,var(--bg1),var(--bg2));border:1px solid var(--line);border-radius:20px;padding:18px;text-align:center}
+#joinBox h2{margin:0 0 14px;color:var(--acc);font-size:20px}
+#joinBox button{display:block;width:100%;margin:8px 0;padding:16px;font-size:20px;font-weight:800;color:#fff;border:0;border-radius:14px;cursor:pointer;font-family:inherit;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+label.chk{display:flex;gap:10px;align-items:center;margin:0 0 14px;font-size:14px;color:var(--sub)}
+label.chk input{width:20px;height:20px;accent-color:var(--acc)}
+.eqrow{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.eqrow input[type=text]{flex:1;padding:10px 12px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.28);color:var(--txt);font-family:inherit}
+.mode{display:block;padding:12px 14px;border-radius:14px;cursor:pointer;border:2px solid transparent;background:rgba(0,0,0,.2);margin-bottom:10px}
+.mode.sel{border-color:var(--acc);background:rgba(255,255,255,.1)}
+.mode b{display:block;font-size:16px}.mode small{display:block;margin-top:3px;color:var(--sub);font-size:13px;line-height:1.35}
+
+#toast{position:fixed;left:50%;bottom:4vh;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;display:none}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<header>
+  <img id="logo" alt="">
+  <div id="badge"></div>
+  <h1 id="titre"><span id="nomC"></span><small id="sousC"></small></h1>
+  <div class="sp"></div>
+  <button class="tool" id="son"></button>
+  <button class="tool" id="raz"></button>
+  <button class="tool" id="chg" style="display:none"></button>
+  <button class="tool" id="rg">⚙</button>
+  <button class="tool" id="fs">⛶</button>
+</header>
+<main id="mainJury">
+  <button id="btn"><span id="btnLabel"></span><small id="btnHint"></small></button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:1.5vh">
+    <div id="cpt"><span id="lblCpt"></span><b id="n">0</b><button class="tool" id="moins" aria-label="-1">−1</button></div>
+    <div id="msg"></div>
+  </div>
+</main>
+
+<main id="mainEq">
+  <div id="eqBar"><div id="eqStatus"></div><div id="eqInfo"></div></div>
+  <div id="eqZones"></div>
+  <div id="eqScores"></div>
+  <div id="eqCtl">
+    <button class="tool" id="g_open"></button>
+    <button class="tool" id="g_good"></button>
+    <button class="tool" id="g_bad"></button>
+    <button class="tool" id="g_cancel"></button>
+  </div>
+</main>
+<div id="join"><div id="joinBox"><h2 id="joinT"></h2><div id="joinL"></div></div></div>
+<div id="reg"><div id="boite">
+  <h2 id="regTitre"></h2>
+  <div id="onglets"></div>
+  <div id="corps">
+    <div class="pane" data-p="concours">
+      <label class="f"><span data-t="f_nom"></span><input type="text" id="i_nom" maxlength="60"></label>
+      <label class="f"><span data-t="f_sous"></span><input type="text" id="i_sous" maxlength="60"></label>
+      <div class="logoLigne">
+        <img id="apercuLogo" alt="">
+        <div>
+          <button class="btnS" id="b_logo" data-t="b_logo"></button>
+          <button class="btnS" id="b_nologo" data-t="b_nologo"></button>
+          <input type="file" id="f_logo" accept="image/*" hidden>
+        </div>
+      </div>
+      <label class="f"><span data-t="f_bouton"></span><input type="text" id="i_btn" maxlength="24"></label>
+      <label class="f"><span data-t="f_indic"></span><input type="text" id="i_hint" maxlength="70"></label>
+      <label class="f"><span data-t="f_cpt"></span><input type="text" id="i_cpt" maxlength="30"></label>
+      <label class="f"><span data-t="f_lang"></span>
+        <select id="i_lang"><option value="fr">Français</option><option value="en">English</option><option value="ar">العربية</option></select></label>
+    </div>
+    <div class="pane" data-p="mode">
+      <div id="modes"></div>
+      <p class="aide" id="netInfo"></p>
+      <p class="aide" data-t="keys"></p>
+    </div>
+    <div class="pane" data-p="equipes">
+      <label class="f"><span data-t="f_nbeq"></span><select id="i_nbeq"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+      <p class="aide" data-t="eq_noms"></p>
+      <div id="eqRows"></div>
+      <label class="f"><span data-t="f_points"></span><input type="text" inputmode="numeric" id="i_pts" maxlength="3"></label>
+      <label class="f"><span data-t="f_rep"></span><input type="text" inputmode="numeric" id="i_rep" maxlength="3"></label>
+      <label class="chk"><input type="checkbox" id="i_excl"><span data-t="f_excl"></span></label>
+    </div>
+    <div class="pane" data-p="theme">
+      <p class="aide" data-t="a_theme"></p>
+      <div id="themes"></div>
+      <div class="coul" id="coulPerso">
+        <label><span data-t="c_fond"></span><input type="color" id="c1"></label>
+        <label><span data-t="c_accent"></span><input type="color" id="c2"></label>
+      </div>
+      <div class="coul">
+        <label><span data-t="c_bouton"></span><input type="color" id="c3"></label>
+        <button class="btnS" id="c3reset" data-t="c_defaut"></button>
+      </div>
+    </div>
+    <div class="pane" data-p="sons">
+      <div id="liste"></div>
+      <div class="vol"><span>🔈</span><input type="range" id="vol" min="10" max="100" value="100"><span>🔊</span></div>
+    </div>
+    <div class="pane" data-p="donnees">
+      <p class="aide" data-t="a_donnees"></p>
+      <div class="rangee">
+        <button class="btnS" id="b_exp" data-t="b_exp"></button>
+        <button class="btnS" id="b_imp" data-t="b_imp"></button>
+        <input type="file" id="f_imp" accept=".json,application/json" hidden>
+      </div>
+      <div class="rangee"><button class="btnS" id="b_reset" data-t="b_reset"></button></div>
+    </div>
+  </div>
+  <button id="ferme"></button>
+</div></div>
+<div id="toast"></div>
+
+<script>
+/* Moteur de jeu "premier a buzzer a la main" - partage par la page (mode un seul ecran) et par le serveur. */
+(function (root, f) { if (typeof module === "object" && module.exports) module.exports = f(); else root.Moteur = f(); })(this, function () {
+  function creer(defs) {
+    return { phase: "closed", winner: null, excluded: [], round: 0, deadline: 0, last: null,
+      teams: defs.map(function (d) { return { n: d.n, c: d.c, score: 0 }; }) };
+  }
+  // retourne true si l'etat a change
+  function appliquer(S, a, P, now) {
+    P = P || {};
+    switch (a.type) {
+      case "open":
+        S.phase = "open"; S.winner = null; S.excluded = []; S.round++; S.deadline = 0; S.last = null; return true;
+      case "buzz":
+        if (S.phase !== "open" || !S.teams[a.team] || S.excluded.indexOf(a.team) >= 0) return false;
+        S.phase = "locked"; S.winner = a.team; S.last = null;
+        S.deadline = P.reponse > 0 ? now + P.reponse * 1000 : 0; return true;
+      case "good":
+        if (S.phase !== "locked") return false;
+        S.teams[S.winner].score += (P.points || 1);
+        S.last = { team: S.winner, res: "good" }; S.phase = "closed"; S.winner = null; S.deadline = 0; return true;
+      case "bad":
+        if (S.phase !== "locked") return false;
+        S.last = { team: S.winner, res: "bad" };
+        if (P.exclure !== false) { S.excluded.push(S.winner); S.phase = S.excluded.length < S.teams.length ? "open" : "closed"; }
+        else S.phase = "open";
+        S.winner = null; S.deadline = 0; return true;
+      case "cancel":
+        if (S.phase === "closed") return false;
+        S.phase = "closed"; S.winner = null; S.deadline = 0; return true;
+      case "score":
+        if (!S.teams[a.team]) return false;
+        S.teams[a.team].score += (a.delta | 0); return true;
+      case "resetScores":
+        S.teams.forEach(function (t) { t.score = 0; }); return true;
+      case "teams":
+        S.teams = a.list.map(function (d, i) { return { n: d.n, c: d.c, score: S.teams[i] ? S.teams[i].score : 0 }; });
+        if (S.winner !== null && !S.teams[S.winner]) { S.winner = null; S.phase = "closed"; S.deadline = 0; }
+        S.excluded = S.excluded.filter(function (i) { return i < S.teams.length; });
+        if (S.last && !S.teams[S.last.team]) S.last = null;
+        return true;
+    }
+    return false;
+  }
+  return { creer: creer, appliquer: appliquer };
+});
+
+(function(){
+  "use strict";
+  /* ---------- utilitaires ---------- */
+  function $(id){ return document.getElementById(id); }
+  function lire(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } }
+  function ecrire(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+  function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+
+  /* ---------- textes ---------- */
+  var T = {
+    fr:{ titre0:"Bienvenue — configurez votre concours",
+      o_mode:"Mode", o_equipes:"Équipes", keys:"Clavier : Espace = ouvrir la question · G = bonne réponse · M = mauvaise · 1 à 8 = buzzer de l'équipe (écran unique) · en mode jury : Espace/Entrée = buzzer, R = remise à zéro.",
+      mode_jury:"Jury — compteur d'erreurs", mode_jury_d:"Un seul buzzer : le jury appuie quand le candidat se trompe.",
+      mode_local:"Équipes — un seul écran", mode_local_d:"Une grande zone par équipe sur le même écran. La première équipe qui appuie prend la main.",
+      mode_reseau:"Équipes — un appareil par équipe", mode_reseau_d:"Chaque équipe buzze depuis son téléphone ; l'animateur pilote depuis l'ordinateur. Nécessite le petit serveur (voir LISEZ-MOI), sur le même réseau Wi-Fi.",
+      f_nbeq:"Nombre d'équipes", eq_noms:"Nom et couleur de chaque équipe (laisser vide = nom par défaut)", f_points:"Points par bonne réponse", f_rep:"Temps pour répondre, en secondes (0 = sans chrono)", f_excl:"Une équipe qui se trompe reste bloquée pour la question", eq:"Équipe",
+      g_open:"Ouvrir la question", g_next:"Question suivante", g_good:"✔ Bonne réponse", g_bad:"✘ Mauvaise réponse", g_cancel:"Annuler", g_resetsc:"Scores à zéro", g_resetq:"Remettre tous les scores à zéro ?",
+      st_closed:"En attente de la question…", st_open:"Buzzez !", st_has:"{x} a la main", st_you:"Vous avez la main !", st_blocked:"Vous êtes bloqué pour cette question", st_time:"Temps écoulé", st_wait:"En attente de l'animateur…", st_lost:"Connexion perdue… reconnexion",
+      net_need:"Ce mode nécessite le serveur : lancez-le sur l'ordinateur de l'animateur, puis ouvrez cette page à l'adresse « Animateur » qu'il affiche (http://localhost:3000).", net_ok:"Serveur connecté.", net_teams:"Équipes, ouvrez :", net_dev:"appareil(s) connecté(s)", net_pin:"Code animateur (affiché par le serveur) ?", join_titre:"Choisissez votre équipe", join_chg:"Changer d'équipe", titre:"Réglages", sousDef:"Buzzer du jury", btnDef:"HALTE", hintDef:"Appuyer quand le candidat se trompe", cptDef:"Interpellation",
+      o_concours:"Concours", o_theme:"Thème", o_sons:"Sons", o_donnees:"Données",
+      f_nom:"Nom du concours", f_sous:"Sous-titre", b_logo:"Choisir un logo…", b_nologo:"Retirer", f_bouton:"Texte du bouton", f_indic:"Indication sous le bouton", f_cpt:"Libellé du compteur", f_lang:"Langue",
+      a_theme:"Les couleurs de l'écran sont calculées à partir du logo, ou choisissez un thème prêt à l'emploi, ou vos propres couleurs.",
+      th_auto:"Selon le logo", th_perso:"Personnalisé", th_emeraude:"Émeraude", th_nuit:"Bleu nuit", th_bordeaux:"Bordeaux", th_violet:"Violet", th_ocean:"Océan", th_noir:"Noir & or", th_orange:"Terre cuite",
+      c_fond:"Fond", c_accent:"Accent", c_bouton:"Bouton", c_defaut:"Rouge par défaut",
+      a_donnees:"Exportez vos réglages (nom, logo, couleurs, son) dans un fichier pour les retrouver sur un autre appareil, ou importez un fichier reçu d'un autre organisateur.",
+      b_exp:"Exporter les réglages", b_imp:"Importer des réglages", b_reset:"Tout réinitialiser",
+      ferme:"Valider", son_on:"🔊 Son", son_off:"🔇 Muet", raz:"Remise à zéro", err:"Erreur n° ", razmsg:"Compteur remis à zéro",
+      imp_ok:"Réglages importés", imp_ko:"Fichier non valide", reset_q:"Effacer tous les réglages de cet appareil ?", exp_ok:"Fichier exporté", logo_ko:"Image illisible", save_ko:"Logo trop lourd pour être mémorisé",
+      sons:{classique:["Buzzer classique","Deux salves graves"],buzzer1:["Buzzer simple","Un seul ton grave"],bip:["Bip","Un seul bip aigu"],bipgrave:["Bip grave","Un seul ton rond et grave"],clic:["Clic","Un clic sec et court"],toc:["Toc","Coup sec de bois"],ding:["Ding","Une note de cloche"],klaxon:["Klaxon","Un long ton fort"]} },
+    en:{ titre0:"Welcome — set up your contest",
+      o_mode:"Mode", o_equipes:"Teams", keys:"Keyboard: Space = open question · G = correct · M = wrong · 1–8 = team buzz (single screen) · jury mode: Space/Enter = buzz, R = reset.",
+      mode_jury:"Jury — mistake counter", mode_jury_d:"A single buzzer: the judges press when the contestant makes a mistake.",
+      mode_local:"Teams — single screen", mode_local_d:"One big zone per team on the same screen. The first team to press gets the floor.",
+      mode_reseau:"Teams — one device per team", mode_reseau_d:"Each team buzzes from its own phone; the host controls from a computer. Needs the small server (see README), on the same Wi-Fi network.",
+      f_nbeq:"Number of teams", eq_noms:"Name and colour of each team (leave empty for the default name)", f_points:"Points per correct answer", f_rep:"Time to answer, in seconds (0 = no timer)", f_excl:"A team that answers wrong stays locked out for the question", eq:"Team",
+      g_open:"Open question", g_next:"Next question", g_good:"✔ Correct", g_bad:"✘ Wrong", g_cancel:"Cancel", g_resetsc:"Reset scores", g_resetq:"Reset all scores to zero?",
+      st_closed:"Waiting for the question…", st_open:"Buzz now!", st_has:"{x} has the floor", st_you:"You have the floor!", st_blocked:"You are locked out for this question", st_time:"Time's up", st_wait:"Waiting for the host…", st_lost:"Connection lost… reconnecting",
+      net_need:"This mode needs the server: start it on the host's computer, then open this page at the “Host” address it shows (http://localhost:3000).", net_ok:"Server connected.", net_teams:"Teams, open:", net_dev:"device(s) connected", net_pin:"Host code (shown by the server)?", join_titre:"Choose your team", join_chg:"Change team", titre:"Settings", sousDef:"Judges' buzzer", btnDef:"STOP", hintDef:"Press when the contestant makes a mistake", cptDef:"Mistakes",
+      o_concours:"Contest", o_theme:"Theme", o_sons:"Sounds", o_donnees:"Data",
+      f_nom:"Contest name", f_sous:"Subtitle", b_logo:"Choose a logo…", b_nologo:"Remove", f_bouton:"Button text", f_indic:"Hint under the button", f_cpt:"Counter label", f_lang:"Language",
+      a_theme:"Screen colours are computed from your logo, or pick a ready-made theme, or your own colours.",
+      th_auto:"From logo", th_perso:"Custom", th_emeraude:"Emerald", th_nuit:"Midnight blue", th_bordeaux:"Burgundy", th_violet:"Purple", th_ocean:"Ocean", th_noir:"Black & gold", th_orange:"Terracotta",
+      c_fond:"Background", c_accent:"Accent", c_bouton:"Button", c_defaut:"Default red",
+      a_donnees:"Export your settings (name, logo, colours, sound) to a file to reuse them on another device, or import a file from another organiser.",
+      b_exp:"Export settings", b_imp:"Import settings", b_reset:"Reset everything",
+      ferme:"Done", son_on:"🔊 Sound", son_off:"🔇 Muted", raz:"Reset", err:"Mistake #", razmsg:"Counter reset",
+      imp_ok:"Settings imported", imp_ko:"Invalid file", reset_q:"Erase all settings on this device?", exp_ok:"File exported", logo_ko:"Unreadable image", save_ko:"Logo too large to be saved",
+      sons:{classique:["Classic buzzer","Two low bursts"],buzzer1:["Simple buzzer","A single low tone"],bip:["Beep","A single high beep"],bipgrave:["Low beep","A single round low tone"],clic:["Click","A short dry click"],toc:["Knock","A dry wooden knock"],ding:["Ding","A bell note"],klaxon:["Horn","A long loud tone"]} },
+    ar:{ titre0:"مرحبًا — أعدّوا مسابقتكم",
+      o_mode:"النمط", o_equipes:"الفرق", keys:"لوحة المفاتيح: مسافة = فتح السؤال · G = إجابة صحيحة · M = خاطئة · 1–8 = زر الفريق (شاشة واحدة) · نمط اللجنة: مسافة/إدخال = جرس، R = تصفير.",
+      mode_jury:"لجنة التحكيم — عدّاد الأخطاء", mode_jury_d:"جرس واحد: تضغط اللجنة عندما يخطئ المتسابق.",
+      mode_local:"فرق — شاشة واحدة", mode_local_d:"مساحة كبيرة لكل فريق على الشاشة نفسها. أول فريق يضغط يأخذ الكلمة.",
+      mode_reseau:"فرق — جهاز لكل فريق", mode_reseau_d:"كل فريق يضغط من هاتفه، والمقدّم يتحكم من الحاسوب. يتطلب الخادم الصغير (انظر التعليمات) على شبكة الواي فاي نفسها.",
+      f_nbeq:"عدد الفرق", eq_noms:"اسم ولون كل فريق (اتركوه فارغًا للاسم الافتراضي)", f_points:"النقاط لكل إجابة صحيحة", f_rep:"وقت الإجابة بالثواني (0 = بلا مؤقت)", f_excl:"الفريق المخطئ يبقى محظورًا في هذا السؤال", eq:"فريق",
+      g_open:"فتح السؤال", g_next:"السؤال التالي", g_good:"✔ صحيحة", g_bad:"✘ خاطئة", g_cancel:"إلغاء", g_resetsc:"تصفير النقاط", g_resetq:"تصفير كل النقاط؟",
+      st_closed:"في انتظار السؤال…", st_open:"اضغطوا!", st_has:"{x} لديه الكلمة", st_you:"لديكم الكلمة!", st_blocked:"أنتم محظورون في هذا السؤال", st_time:"انتهى الوقت", st_wait:"في انتظار المقدّم…", st_lost:"انقطع الاتصال… إعادة المحاولة",
+      net_need:"هذا النمط يتطلب الخادم: شغّلوه على حاسوب المقدّم ثم افتحوا هذه الصفحة على عنوان «المقدّم» (http://localhost:3000).", net_ok:"الخادم متصل.", net_teams:"الفرق، افتحوا:", net_dev:"جهاز متصل", net_pin:"رمز المقدّم (يعرضه الخادم)؟", join_titre:"اختاروا فريقكم", join_chg:"تغيير الفريق", titre:"الإعدادات", sousDef:"جرس لجنة التحكيم", btnDef:"قِف", hintDef:"اضغط عندما يخطئ المتسابق", cptDef:"التنبيهات",
+      o_concours:"المسابقة", o_theme:"المظهر", o_sons:"الأصوات", o_donnees:"البيانات",
+      f_nom:"اسم المسابقة", f_sous:"عنوان فرعي", b_logo:"اختيار شعار…", b_nologo:"إزالة", f_bouton:"نص الزر", f_indic:"تلميح تحت الزر", f_cpt:"عنوان العدّاد", f_lang:"اللغة",
+      a_theme:"تُحسب ألوان الشاشة من الشعار، أو اختاروا مظهرًا جاهزًا، أو ألوانكم الخاصة.",
+      th_auto:"حسب الشعار", th_perso:"مخصص", th_emeraude:"زمردي", th_nuit:"أزرق ليلي", th_bordeaux:"عنابي", th_violet:"بنفسجي", th_ocean:"محيط", th_noir:"أسود وذهبي", th_orange:"قرميدي",
+      c_fond:"الخلفية", c_accent:"اللون المميز", c_bouton:"الزر", c_defaut:"الأحمر الافتراضي",
+      a_donnees:"صدّروا الإعدادات (الاسم، الشعار، الألوان، الصوت) إلى ملف لاستعمالها على جهاز آخر، أو استوردوا ملفًا من منظّم آخر.",
+      b_exp:"تصدير الإعدادات", b_imp:"استيراد إعدادات", b_reset:"إعادة ضبط كل شيء",
+      ferme:"تأكيد", son_on:"🔊 الصوت", son_off:"🔇 صامت", raz:"تصفير", err:"خطأ رقم ", razmsg:"تمّ تصفير العدّاد",
+      imp_ok:"تم استيراد الإعدادات", imp_ko:"ملف غير صالح", reset_q:"مسح كل الإعدادات من هذا الجهاز؟", exp_ok:"تم تصدير الملف", logo_ko:"صورة غير قابلة للقراءة", save_ko:"الشعار كبير جدًا للحفظ",
+      sons:{classique:["جرس كلاسيكي","دفعتان غليظتان"],buzzer1:["جرس بسيط","نغمة غليظة واحدة"],bip:["صفير","صفير حاد واحد"],bipgrave:["صفير غليظ","نغمة مستديرة غليظة"],clic:["نقرة","نقرة جافة قصيرة"],toc:["طرقة","طرقة خشبية جافة"],ding:["رنين","نغمة جرس"],klaxon:["بوق","نغمة طويلة قوية"]} }
+  };
+
+  ["en","ar"].forEach(function(l){ var b=T.fr, o=T[l]; for(var k in b) if(o[k]===undefined) o[k]=b[k]; });
+
+  /* ---------- themes ---------- */
+  var PRESETS = {
+    emeraude:["#14602d","#E9C45A"], nuit:["#14325e","#F2B84B"], bordeaux:["#7a1a2e","#E9C45A"],
+    violet:["#40258a","#F6D978"], ocean:["#0b5d78","#7be3d4"], noir:["#2a2a2a","#E9C45A"], orange:["#8a3a14","#FFD27A"]
+  };
+  function hex2rgb(h){ h=h.replace("#",""); if(h.length===3) h=h.replace(/./g,"$&$&"); var n=parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+  function rgb2hex(r,g,b){ return "#"+[r,g,b].map(function(v){ v=Math.round(clamp(v,0,255)); return (v<16?"0":"")+v.toString(16); }).join(""); }
+  function rgb2hsl(r,g,b){ r/=255;g/=255;b/=255; var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, h=0, s=0, d=mx-mn;
+    if(d){ s=l>.5?d/(2-mx-mn):d/(mx+mn); h=mx===r?((g-b)/d+(g<b?6:0)):mx===g?((b-r)/d+2):((r-g)/d+4); h*=60; }
+    return [h,s,l]; }
+  function hsl2hex(h,s,l){ h=((h%360)+360)%360; var c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2, r=0,g=0,b=0;
+    if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+    return rgb2hex((r+m)*255,(g+m)*255,(b+m)*255); }
+  function hsl(hex){ var c=hex2rgb(hex); return rgb2hsl(c[0],c[1],c[2]); }
+
+  function appliquerCouleurs(fond, accent, bouton){
+    var f=hsl(fond), a=hsl(accent), s=clamp(f[1],.35,.85);
+    var root=document.documentElement.style;
+    var bg1=hsl2hex(f[0],s,clamp(f[2],.17,.27)), bg2=hsl2hex(f[0],s,clamp(f[2]*.42,.07,.11));
+    var ac=hsl2hex(a[0],clamp(a[1],.55,.95),clamp(a[2],.55,.68));
+    root.setProperty("--bg1",bg1); root.setProperty("--bg2",bg2);
+    root.setProperty("--acc",ac); root.setProperty("--acc2",hsl2hex(a[0],clamp(a[1],.55,.95),.76)); root.setProperty("--accd",hsl2hex(a[0],clamp(a[1],.5,.9),.38));
+    var b=hsl(bouton);
+    root.setProperty("--btn1",hsl2hex(b[0],clamp(b[1],.5,1),.72)); root.setProperty("--btn2",hsl2hex(b[0],clamp(b[1],.5,1),.5));
+    root.setProperty("--btn3",hsl2hex(b[0],clamp(b[1],.5,1),.36)); root.setProperty("--btn4",hsl2hex(b[0],clamp(b[1],.5,1),.2));
+    var m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content",bg2);
+  }
+
+  /* couleurs d'un logo : couleur dominante (fond) et seconde couleur (accent) */
+  function couleursDuLogo(img){
+    var N=64, c=document.createElement("canvas"); c.width=N; c.height=N;
+    var x=c.getContext("2d"); x.drawImage(img,0,0,N,N);
+    var d; try{ d=x.getImageData(0,0,N,N).data; }catch(e){ return null; }
+    var B=24, bk=[], i; for(i=0;i<B;i++) bk.push({w:0,h:0,s:0,l:0});
+    for(i=0;i<d.length;i+=4){
+      if(d[i+3]<140) continue;
+      var q=rgb2hsl(d[i],d[i+1],d[i+2]);
+      if(q[1]<.28||q[2]<.12||q[2]>.9) continue;
+      var w=q[1]*(1-Math.abs(2*q[2]-1)), k=Math.floor(q[0]/(360/B))%B;
+      bk[k].w+=w; bk[k].h+=q[0]*w; bk[k].s+=q[1]*w; bk[k].l+=q[2]*w;
+    }
+    var tot=0, best=-1; for(i=0;i<B;i++){ tot+=bk[i].w; if(best<0||bk[i].w>bk[best].w) best=i; }
+    if(tot<3||bk[best].w<=0) return null;
+    function moy(b){ return [b.h/b.w,b.s/b.w,b.l/b.w]; }
+    var p=moy(bk[best]), sec=-1;
+    for(i=0;i<B;i++){
+      if(bk[i].w<bk[best].w*.12) continue;
+      var h=bk[i].h/bk[i].w, dh=Math.abs(h-p[0]); dh=Math.min(dh,360-dh);
+      if(dh>=45&&(sec<0||bk[i].w>bk[sec].w)) sec=i;
+    }
+    var fond=hsl2hex(p[0],p[1],p[2]), acc;
+    if(sec>=0){ var s2=moy(bk[sec]); acc=hsl2hex(s2[0],s2[1],s2[2]); }
+    else acc=hsl2hex(p[0]+((p[0]>20&&p[0]<70)?0:25),.85,.68);
+    return [fond,acc];
+  }
+
+  /* ---------- configuration ---------- */
+  var TEAM_COL=["#e53935","#1e88e5","#43a047","#fb8c00","#8e24aa","#00acc1","#fdd835","#6d4c41"];
+  var DEF={ mode:"jury", nbEq:2, teams:TEAM_COL.map(function(c){ return {n:"",c:c}; }), points:1, reponse:0, exclure:true, nom:"", sous:"", logo:"", theme:"emeraude", c1:"#14602d", c2:"#E9C45A", c3:"#e53935", btn:"", hint:"", cpt:"", lang:"fr", son:"classique", vol:1, auto:null };
+  var cfg={};
+  function charger(){
+    var o={}; try{ o=JSON.parse(lire("buzgen_cfg","{}"))||{}; }catch(e){ o={}; }
+    cfg={}; for(var k in DEF) cfg[k]=(o[k]===undefined?DEF[k]:o[k]);
+    if(!Array.isArray(cfg.teams)||cfg.teams.length<8) cfg.teams=DEF.teams.map(function(d,i){ return (o.teams&&o.teams[i])?o.teams[i]:d; });
+  }
+  function sauver(){ if(Eq.role==="team") return; var ok=ecrire("buzgen_cfg",JSON.stringify(cfg)); if(!ok) toast(L().save_ko); }
+  function L(){ return T[cfg.lang]||T.fr; }
+  function premier(){ return lire("buzgen_cfg",null)===null; }
+
+  function couleursActives(){
+    if(cfg.theme==="auto"&&cfg.auto) return cfg.auto;
+    if(cfg.theme==="perso") return [cfg.c1,cfg.c2];
+    if(PRESETS[cfg.theme]) return PRESETS[cfg.theme];
+    return PRESETS.emeraude;
+  }
+
+  /* ---------- affichage principal ---------- */
+  var n=0, muet=false;
+  function initiales(s){ var m=(s||"").trim().split(/\s+/).filter(Boolean); return ((m[0]||"?").charAt(0)+(m[1]?m[1].charAt(0):"")).toUpperCase(); }
+  function appliquer(){
+    var t=L();
+    document.documentElement.lang=cfg.lang; document.documentElement.dir=(cfg.lang==="ar"?"rtl":"ltr");
+    var cs=couleursActives(); appliquerCouleurs(cs[0],cs[1],cfg.c3);
+    $("nomC").textContent=cfg.nom||"";
+    $("sousC").textContent=cfg.sous||t.sousDef;
+    $("titre").style.display=(cfg.nom||cfg.sous||true)?"":"none";
+    document.title=(cfg.nom?cfg.nom+" — ":"")+(cfg.sous||t.sousDef);
+    var lg=$("logo"), bd=$("badge");
+    if(cfg.logo){ lg.src=cfg.logo; lg.className="on"; bd.className=""; $("favicon").href=cfg.logo; }
+    else { lg.removeAttribute("src"); lg.className=""; bd.textContent=initiales(cfg.nom); bd.className=cfg.nom?"on":"";
+           $("favicon").href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23e53935'/%3E%3C/svg%3E"; }
+    $("btnLabel").textContent=cfg.btn||t.btnDef;
+    $("btnHint").textContent=cfg.hint||t.hintDef;
+    $("lblCpt").textContent=cfg.cpt||t.cptDef;
+    $("son").textContent=muet?t.son_off:t.son_on;
+    $("raz").textContent=t.raz;
+    if(!$("msg").dataset.k) $("msg").textContent="";
+    majMode(); pousserConfig();
+  }
+
+  /* ---------- audio ---------- */
+  var ctx=null;
+  function audio(){
+    if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(ctx&&ctx.state==="suspended") ctx.resume();
+    return ctx;
+  }
+  function env(c,dest,t,pic,dur,att){ var g=c.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(pic,t+(att||0.01)); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); g.connect(dest); return g; }
+  function tonalite(c,dest,t,type,f,pic,dur,f2){ var o=c.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur); o.connect(env(c,dest,t,pic,dur)); o.start(t); o.stop(t+dur+0.02); }
+  function bruit(c,dest,t,dur,pic,freq,q){ var m=Math.floor(c.sampleRate*dur), buf=c.createBuffer(1,m,c.sampleRate), d=buf.getChannelData(0); for(var i=0;i<m;i++) d[i]=(Math.random()*2-1)*(1-i/m);
+    var src=c.createBufferSource(); src.buffer=buf; var f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=freq; f.Q.value=q; src.connect(f); f.connect(env(c,dest,t,pic,dur,0.002)); src.start(t); }
+  var SONS=[
+    {id:"classique",jouer:function(c,d,t){ [0,0.34].forEach(function(k){ tonalite(c,d,t+k,"sawtooth",150,0.55,0.30); tonalite(c,d,t+k,"square",75,0.35,0.30); tonalite(c,d,t+k,"sawtooth",152,0.3,0.30); }); }},
+    {id:"buzzer1",jouer:function(c,d,t){ tonalite(c,d,t,"sawtooth",140,0.6,0.7); tonalite(c,d,t,"square",70,0.4,0.7); }},
+    {id:"bip",jouer:function(c,d,t){ tonalite(c,d,t,"sine",880,0.9,0.35); }},
+    {id:"bipgrave",jouer:function(c,d,t){ tonalite(c,d,t,"square",200,0.5,0.45); tonalite(c,d,t,"sine",100,0.7,0.45); }},
+    {id:"clic",jouer:function(c,d,t){ bruit(c,d,t,0.05,1.0,2500,1.2); tonalite(c,d,t,"square",1800,0.3,0.03); }},
+    {id:"toc",jouer:function(c,d,t){ tonalite(c,d,t,"sine",900,1.0,0.14,350); bruit(c,d,t,0.03,0.5,1500,1); }},
+    {id:"ding",jouer:function(c,d,t){ tonalite(c,d,t,"sine",1175,0.7,1.0); tonalite(c,d,t,"sine",2350,0.25,0.6); }},
+    {id:"klaxon",jouer:function(c,d,t){ tonalite(c,d,t,"square",330,0.45,0.9); tonalite(c,d,t,"sawtooth",332,0.4,0.9); }}
+  ];
+  function jouerSon(id){
+    var c=audio(); if(!c) return;
+    var son=SONS.filter(function(x){ return x.id===id; })[0]||SONS[0];
+    var master=c.createGain(); master.gain.value=(+cfg.vol||1)*2.5;
+    var comp=c.createDynamicsCompressor(); master.connect(comp); comp.connect(c.destination);
+    son.jouer(c,master,c.currentTime+0.01);
+  }
+
+  /* ---------- buzzer ---------- */
+  var btn=$("btn"), flash=$("flash"), msg=$("msg"), reg=$("reg");
+  function dire(txt){ msg.textContent=txt; msg.dataset.k=txt?"1":""; }
+  function erreur(){
+    if(!muet) jouerSon(cfg.son);
+    flash.style.background="";
+    n++; $("n").textContent=n;
+    flash.classList.add("on"); void flash.offsetWidth; flash.classList.remove("on");
+    btn.classList.add("press"); setTimeout(function(){ btn.classList.remove("press"); },120);
+    if(navigator.vibrate){ try{ navigator.vibrate([180,80,180]); }catch(e){} }
+    dire(L().err+n);
+  }
+  function raz(){ n=0; $("n").textContent=0; dire(L().razmsg); }
+  btn.addEventListener("pointerdown",function(e){ e.preventDefault(); erreur(); });
+  $("raz").addEventListener("click",raz);
+  $("moins").addEventListener("click",function(){ if(n>0){ n--; $("n").textContent=n; dire(n?L().err+n:""); } });
+  $("son").addEventListener("click",function(){ muet=!muet; appliquer(); if(!muet) jouerSon(cfg.son); });
+  $("fs").addEventListener("click",function(){ var d=document.documentElement;
+    if(!document.fullscreenElement){ (d.requestFullscreen||d.webkitRequestFullscreen||function(){}).call(d); }
+    else { (document.exitFullscreen||document.webkitExitFullscreen).call(document); } });
+  document.addEventListener("keydown",function(e){
+    if(e.repeat||reg.classList.contains("on")) return;
+    var tag=(e.target&&e.target.tagName)||""; if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA") return;
+    if(cfg.mode==="jury"&&Eq.role!=="team"){
+      if(e.key===" "||e.key==="Enter"){ e.preventDefault(); erreur(); }
+      else if(e.key==="r"||e.key==="R"){ raz(); }
+      return;
+    }
+    clavierEquipes(e);
+  });
+  ["pointerdown","touchstart","keydown"].forEach(function(ev){ document.addEventListener(ev,audio,{once:true,passive:true}); });
+
+  /* ---------- fenetre de reglages ---------- */
+  var ongletCourant="concours", premierLancement=false;
+  function lesOnglets(){ return cfg.mode==="jury"?["concours","mode","theme","sons","donnees"]:["concours","mode","equipes","theme","sons","donnees"]; }
+  function toast(txt){ var t=$("toast"); t.textContent=txt; t.style.display="block"; clearTimeout(toast.h); toast.h=setTimeout(function(){ t.style.display="none"; },2600); }
+  function textes(){
+    var t=L(); var els=document.querySelectorAll("[data-t]");
+    for(var i=0;i<els.length;i++){ var v=t[els[i].getAttribute("data-t")]; if(v!==undefined) els[i].textContent=v; }
+    $("regTitre").textContent=premierLancement?t.titre0:t.titre;
+    $("ferme").textContent=t.ferme;
+    $("onglets").innerHTML="";
+    lesOnglets().forEach(function(o){ var b=document.createElement("button"); b.textContent=t["o_"+o]; b.className=(o===ongletCourant?"on":"");
+      b.addEventListener("click",function(){ ongletCourant=o; panneaux(); }); $("onglets").appendChild(b); });
+  }
+  function panneaux(){
+    var ps=document.querySelectorAll(".pane"); for(var i=0;i<ps.length;i++) ps[i].classList.toggle("on",ps[i].getAttribute("data-p")===ongletCourant);
+    var bs=$("onglets").children; for(var j=0;j<bs.length;j++) bs[j].classList.toggle("on",lesOnglets()[j]===ongletCourant);
+  }
+  function listeThemes(){
+    var t=L(), box=$("themes"); box.innerHTML="";
+    function carte(id,nom,c1,c2,extra){
+      var d=document.createElement("div"); d.className="th"+(cfg.theme===id?" sel":"");
+      d.innerHTML='<i style="background:linear-gradient(135deg,'+c1+','+c2+')"><b style="background:'+c2+'"></b></i>'+nom;
+      d.addEventListener("click",function(){ cfg.theme=id; sauver(); appliquer(); listeThemes(); majCouleurs(); });
+      box.appendChild(d);
+    }
+    var a=cfg.auto||["#444","#999"];
+    carte("auto",t.th_auto+(cfg.auto?"":" ·"),a[0],a[1]);
+    Object.keys(PRESETS).forEach(function(k){ carte(k,t["th_"+k],PRESETS[k][0],PRESETS[k][1]); });
+    carte("perso",t.th_perso,cfg.c1,cfg.c2);
+  }
+  function majCouleurs(){
+    $("c1").value=cfg.c1; $("c2").value=cfg.c2; $("c3").value=cfg.c3;
+    $("coulPerso").style.display=(cfg.theme==="perso"?"flex":"none");
+  }
+  function listeSons(){
+    var t=L(), box=$("liste"); box.innerHTML="";
+    SONS.forEach(function(sn){
+      var nm=t.sons[sn.id]; var li=document.createElement("div"); li.className="snd"+(sn.id===cfg.son?" sel":"");
+      li.innerHTML='<span class="pt"></span><span class="nom">'+nm[0]+'<small>'+nm[1]+'</small></span>';
+      var b=document.createElement("button"); b.className="btnS"; b.textContent="▶";
+      b.addEventListener("click",function(e){ e.stopPropagation(); jouerSon(sn.id); }); li.appendChild(b);
+      li.addEventListener("click",function(){ cfg.son=sn.id; sauver(); listeSons(); jouerSon(cfg.son); });
+      box.appendChild(li);
+    });
+  }
+  function remplir(){
+    $("i_nom").value=cfg.nom; $("i_sous").value=cfg.sous; $("i_btn").value=cfg.btn; $("i_hint").value=cfg.hint; $("i_cpt").value=cfg.cpt; $("i_lang").value=cfg.lang;
+    $("i_nom").placeholder=""; $("i_sous").placeholder=L().sousDef; $("i_btn").placeholder=L().btnDef; $("i_hint").placeholder=L().hintDef; $("i_cpt").placeholder=L().cptDef;
+    if(cfg.logo){ $("apercuLogo").src=cfg.logo; $("apercuLogo").style.visibility="visible"; } else { $("apercuLogo").removeAttribute("src"); $("apercuLogo").style.visibility="visible"; }
+    $("vol").value=Math.round((+cfg.vol||1)*100);
+    remplirMode(); remplirEquipes();
+    textes(); panneaux(); listeThemes(); majCouleurs(); listeSons();
+  }
+  function ouvrir(prem){ premierLancement=!!prem; ongletCourant="concours"; remplir(); reg.classList.add("on"); }
+  function fermer(){
+    reg.classList.remove("on"); premierLancement=false;
+    ecrire("buzgen_cfg",JSON.stringify(cfg));   // marque la configuration comme faite
+  }
+  [["i_nom","nom"],["i_sous","sous"],["i_btn","btn"],["i_hint","hint"],["i_cpt","cpt"]].forEach(function(p){
+    $(p[0]).addEventListener("input",function(){ cfg[p[1]]=this.value; sauver(); appliquer(); });
+  });
+  $("i_lang").addEventListener("change",function(){ cfg.lang=this.value; sauver(); appliquer(); remplir(); });
+  $("c1").addEventListener("input",function(){ cfg.c1=this.value; cfg.theme="perso"; sauver(); appliquer(); listeThemes(); majCouleurs(); });
+  $("c2").addEventListener("input",function(){ cfg.c2=this.value; cfg.theme="perso"; sauver(); appliquer(); listeThemes(); majCouleurs(); });
+  $("c3").addEventListener("input",function(){ cfg.c3=this.value; sauver(); appliquer(); });
+  $("c3reset").addEventListener("click",function(){ cfg.c3=DEF.c3; sauver(); appliquer(); majCouleurs(); });
+  $("vol").addEventListener("input",function(){ cfg.vol=this.value/100; sauver(); });
+  $("vol").addEventListener("change",function(){ jouerSon(cfg.son); });
+  $("rg").addEventListener("click",function(){ ouvrir(false); });
+  $("ferme").addEventListener("click",fermer);
+
+  /* logo */
+  $("b_logo").addEventListener("click",function(){ $("f_logo").click(); });
+  $("b_nologo").addEventListener("click",function(){ cfg.logo=""; cfg.auto=null; if(cfg.theme==="auto") cfg.theme="emeraude"; sauver(); appliquer(); remplir(); });
+  $("f_logo").addEventListener("change",function(){
+    var f=this.files&&this.files[0]; this.value=""; if(!f) return;
+    var fr=new FileReader();
+    fr.onload=function(){
+      var im=new Image();
+      im.onload=function(){
+        var M=480, r=Math.min(1,M/Math.max(im.width,im.height)), c=document.createElement("canvas");
+        c.width=Math.max(1,Math.round(im.width*r)); c.height=Math.max(1,Math.round(im.height*r));
+        c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+        var url; try{ url=c.toDataURL("image/png"); }catch(e){ toast(L().logo_ko); return; }
+        cfg.logo=url; cfg.auto=couleursDuLogo(c);
+        if(cfg.auto) cfg.theme="auto"; else if(cfg.theme==="auto") cfg.theme="emeraude";
+        sauver(); appliquer(); remplir();
+      };
+      im.onerror=function(){ toast(L().logo_ko); };
+      im.src=fr.result;
+    };
+    fr.onerror=function(){ toast(L().logo_ko); };
+    fr.readAsDataURL(f);
+  });
+
+  /* export / import / reinitialisation */
+  $("b_exp").addEventListener("click",function(){
+    var blob=new Blob([JSON.stringify({buzzerGenerique:1,config:cfg},null,1)],{type:"application/json"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="buzzer_"+((cfg.nom||"concours").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"")||"concours")+".json";
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); toast(L().exp_ok);
+  });
+  $("b_imp").addEventListener("click",function(){ $("f_imp").click(); });
+  $("f_imp").addEventListener("change",function(){
+    var f=this.files&&this.files[0]; this.value=""; if(!f) return;
+    var fr=new FileReader();
+    fr.onload=function(){
+      try{
+        var o=JSON.parse(fr.result); if(!o||!o.config) throw 0;
+        for(var k in DEF) if(o.config[k]!==undefined) cfg[k]=o.config[k];
+        sauver(); appliquer(); remplir(); toast(L().imp_ok);
+      }catch(e){ toast(L().imp_ko); }
+    };
+    fr.readAsText(f);
+  });
+  $("b_reset").addEventListener("click",function(){
+    if(!confirm(L().reset_q)) return;
+    try{ localStorage.removeItem("buzgen_cfg"); }catch(e){}
+    charger(); appliquer(); ouvrir(true);
+  });
+
+  /* ================= MODES EQUIPES ================= */
+  var Eq={ S:null, role:"local", team:null, es:null, off:0, dispo:false, info:null, conn:{}, ok:false, pin:"", last:"", timer:null, pushH:null };
+
+  function nomEq(i){ var t=cfg.teams[i]; return (t&&t.n&&t.n.trim())||(L().eq+" "+(i+1)); }
+  function teamDefs(){ var o=[]; for(var i=0;i<cfg.nbEq;i++) o.push({n:nomEq(i),c:cfg.teams[i].c}); return o; }
+  function params(){ return { points:Math.max(1,parseInt(cfg.points,10)||1), reponse:Math.max(0,parseInt(cfg.reponse,10)||0), exclure:cfg.exclure!==false }; }
+  function vue(){ return { nom:cfg.nom, sous:cfg.sous, logo:cfg.logo, c:couleursActives(), c3:cfg.c3, lang:cfg.lang, son:cfg.son }; }
+  function eclaircir(hex,l){ var h=hsl(hex); return hsl2hex(h[0],h[1],l); }
+
+  /* ----- actions ----- */
+  function agir(a){
+    if(Eq.role==="local"){ if(Moteur.appliquer(Eq.S,a,params(),Date.now())) etatChange(); }
+    else poster(a);
+  }
+  function poster(a,retry){
+    var h={"Content-Type":"application/json"}; if(Eq.pin) h["x-pin"]=Eq.pin;
+    fetch("/api/action",{method:"POST",headers:h,body:JSON.stringify(a),keepalive:true}).then(function(r){
+      if(r.status===403&&!retry&&Eq.role==="host"){ var p=prompt(L().net_pin); if(p){ Eq.pin=p.trim(); poster(a,true); } }
+    }).catch(function(){});
+  }
+  function pousserConfig(){
+    if(Eq.role!=="host"||!Eq.ok) return;
+    clearTimeout(Eq.pushH);
+    Eq.pushH=setTimeout(function(){ poster({type:"config",view:vue(),teams:teamDefs(),params:params()}); },350);
+  }
+
+  /* ----- demarrage selon le mode ----- */
+  function arreterReseau(){ if(Eq.es){ try{ Eq.es.close(); }catch(e){} Eq.es=null; } Eq.ok=false; }
+  function demarrerMode(){
+    arreterReseau();
+    if(cfg.mode==="local"){ Eq.role="local"; Eq.S=Moteur.creer(teamDefs()); Eq.last=""; }
+    else if(cfg.mode==="reseau"){
+      Eq.role="host"; Eq.S=Eq.S||Moteur.creer(teamDefs());
+      detecterServeur(function(){ if(Eq.dispo) connecter(); else { rendreEq(); } });
+    } else { Eq.role="local"; }
+    majMode(); rendreEq();
+  }
+  function detecterServeur(cb){
+    fetch("/api/info",{cache:"no-store"}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(i){ Eq.dispo=true; Eq.info=i; if(i.pin&&!Eq.pin) Eq.pin=i.pin; cb(); })
+      .catch(function(){ Eq.dispo=false; Eq.info=null; cb(); });
+  }
+  function demarrerEquipe(){
+    try{ var t=sessionStorage.getItem("buzgen_team"); if(t!==null&&t!=="") Eq.team=+t; }catch(e){}
+    Eq.dispo=true; connecter(); majMode(); rendreEq();
+  }
+  function connecter(){
+    arreterReseau();
+    var url="/events?role="+(Eq.role==="host"?"host":"team")+(Eq.role==="team"&&Eq.team!==null?"&team="+Eq.team:"");
+    var es=new EventSource(url); Eq.es=es;
+    es.addEventListener("state",function(e){
+      var m=JSON.parse(e.data); Eq.off=m.now-Date.now(); Eq.S=m.S; Eq.conn=m.conn||{};
+      if(!Eq.ok){ Eq.ok=true; if(Eq.role==="host") pousserConfig(); }
+      etatChange();
+    });
+    es.addEventListener("cfg",function(e){ var m=JSON.parse(e.data); if(Eq.role==="team"&&m.view) vueServeur(m.view); });
+    es.onopen=function(){ };
+    es.onerror=function(){ Eq.ok=false; rendreEq(); };
+  }
+  function vueServeur(v){
+    cfg.nom=v.nom||""; cfg.sous=v.sous||""; cfg.logo=v.logo||""; cfg.theme="perso"; cfg.c1=v.c[0]; cfg.c2=v.c[1]; cfg.c3=v.c3||cfg.c3; cfg.lang=v.lang||cfg.lang; cfg.son=v.son||cfg.son;
+    appliquer();
+  }
+
+  /* ----- affichage ----- */
+  function colonnes(n){
+    var port=window.innerHeight>window.innerWidth;
+    if(Eq.role==="team") return 1;
+    if(port) return n<=2?1:2;
+    return n<=3?n:(n<=4?2:(n<=6?3:4));
+  }
+  function majMode(){
+    var eqMode=(Eq.role==="team")||cfg.mode!=="jury";
+    $("mainJury").style.display=eqMode?"none":"";
+    $("mainEq").className=eqMode?("on"+(Eq.role==="host"?" hote":"")):"";
+    $("raz").style.display=(eqMode)?"none":"";
+    var team=Eq.role==="team";
+    $("rg").style.display=team?"none":"";
+    $("chg").style.display=team?"":"none"; $("chg").textContent=L().join_chg;
+    $("eqCtl").style.display=team?"none":"flex";
+    $("g_open").textContent=(Eq.S&&Eq.S.round>0&&Eq.S.phase!=="closed")||(Eq.S&&Eq.S.last)?L().g_next:L().g_open;
+    $("g_good").textContent=L().g_good; $("g_bad").textContent=L().g_bad; $("g_cancel").textContent=L().g_cancel;
+  }
+  function statut(){
+    var S=Eq.S, t=L();
+    if(Eq.role==="host"||Eq.role==="team"){
+      if(Eq.role==="team"||cfg.mode==="reseau"){
+        if(!Eq.dispo&&Eq.role==="host") return {txt:t.net_need};
+        if(!Eq.ok) return {txt:t.st_lost};
+      }
+    }
+    if(!S) return {txt:t.st_wait};
+    if(Eq.role==="team"&&Eq.team===null) return {txt:""};
+    var me=Eq.role==="team"?Eq.team:null;
+    if(S.phase==="closed"){
+      if(S.last&&S.teams[S.last.team]) return {txt:(S.last.res==="good"?"✔ ":"✘ ")+S.teams[S.last.team].n, col:S.teams[S.last.team].c};
+      return {txt:(Eq.role==="team"&&!S.round)?t.st_wait:t.st_closed};
+    }
+    if(S.phase==="open"){
+      if(me!==null&&S.excluded.indexOf(me)>=0) return {txt:t.st_blocked};
+      return {txt:t.st_open};
+    }
+    var w=S.teams[S.winner]; var txt=(me!==null&&me===S.winner)?t.st_you:t.st_has.replace("{x}",w.n);
+    if(S.deadline){ var rem=Math.ceil((S.deadline-(Date.now()+Eq.off))/1000); txt+=rem>0?"  ·  "+rem+" s":"  ·  "+t.st_time; }
+    return {txt:txt,col:w.c};
+  }
+  function rendreStatut(){
+    var st=statut(), el=$("eqStatus");
+    el.textContent=st.txt||" ";
+    if(st.col){ el.style.background=st.col; el.style.color="#fff"; el.style.textShadow="0 1px 4px rgba(0,0,0,.5)"; }
+    else { el.style.background=""; el.style.color=""; el.style.textShadow=""; }
+    var info=$("eqInfo");
+    if(Eq.role==="host"&&Eq.dispo&&Eq.info){
+      var n=0; for(var k in Eq.conn) n+=Eq.conn[k];
+      info.textContent=L().net_teams+" "+(Eq.info.urls.length?Eq.info.urls.join("   "):"—")+"   ·   "+n+" "+L().net_dev+(Eq.info.pin?"   ·   PIN : "+Eq.info.pin:"");
+    } else info.textContent="";
+  }
+  function rendreEq(){
+    majMode(); rendreStatut();
+    var S=Eq.S, zones=$("eqZones"), sc=$("eqScores"), role=Eq.role;
+    if(!S||(cfg.mode==="jury"&&role!=="team")){ zones.innerHTML=""; zones.dataset.k=""; sc.innerHTML=""; return; }
+    var vis=[]; if(role==="team"){ if(Eq.team!==null&&S.teams[Eq.team]) vis=[Eq.team]; } else S.teams.forEach(function(_,i){ vis.push(i); });
+    var key=role+"|"+vis.join(",")+"|"+S.teams.map(function(x){ return x.n+x.c; }).join("|")+"|"+colonnes(vis.length||1);
+    if(zones.dataset.k!==key){
+      zones.dataset.k=key; zones.innerHTML=""; zones.style.setProperty("--cols",colonnes(vis.length||1));
+      vis.forEach(function(i){
+        var b=document.createElement("button"); b.className="zone"; b.setAttribute("data-i",i);
+        var c=S.teams[i].c; b.style.setProperty("--z",c); b.style.setProperty("--z1",eclaircir(c,.68)); b.style.setProperty("--z2",eclaircir(c,.28));
+        b.innerHTML='<span class="zn"></span><span class="zs"></span>';
+        if(role!=="host") b.addEventListener("pointerdown",function(e){ e.preventDefault(); buzzer(role==="team"?Eq.team:i); });
+        zones.appendChild(b);
+      });
+    }
+    var zs=zones.children;
+    for(var j=0;j<zs.length;j++){
+      var i=+zs[j].getAttribute("data-i"), cl="zone";
+      if(S.phase==="closed") cl+=" off";
+      else if(S.phase==="open"){ if(S.excluded.indexOf(i)>=0) cl+=" out"; }
+      else { if(i===S.winner) cl+=" win"; else cl+=(S.excluded.indexOf(i)>=0?" out":" lose"); }
+      zs[j].className=cl;
+      zs[j].firstChild.textContent=S.teams[i].n; zs[j].lastChild.textContent=S.teams[i].score;
+    }
+    // bandeau des scores
+    sc.innerHTML="";
+    var gere=(role!=="team");
+    S.teams.forEach(function(tm,i){
+      var d=document.createElement("div"); d.className="chip"; d.style.borderColor=tm.c;
+      d.innerHTML='<b>'+esc(tm.n)+'</b>'+(gere?'<button data-d="-1">−</button>':'')+'<i>'+tm.score+'</i>'+(gere?'<button data-d="1">+</button>':'');
+      if(gere){ var bs=d.querySelectorAll("button"); for(var q=0;q<bs.length;q++) bs[q].addEventListener("click",function(){ agir({type:"score",team:i,delta:+this.getAttribute("data-d")}); }); }
+      sc.appendChild(d);
+    });
+    if(gere){ var r=document.createElement("button"); r.className="btnS"; r.textContent=L().g_resetsc;
+      r.addEventListener("click",function(){ if(confirm(L().g_resetq)) agir({type:"resetScores"}); }); sc.appendChild(r); }
+    // boutons animateur
+    var ph=S.phase;
+    $("g_good").disabled=(ph!=="locked"); $("g_bad").disabled=(ph!=="locked"); $("g_cancel").disabled=(ph==="closed");
+    // choix d'equipe (appareil d'equipe)
+    var jn=$("join");
+    if(role==="team"&&Eq.team===null&&S){
+      $("joinT").textContent=L().join_titre; var jl=$("joinL"); jl.innerHTML="";
+      S.teams.forEach(function(tm,i){ var b=document.createElement("button"); b.textContent=tm.n; b.style.background=tm.c;
+        b.addEventListener("click",function(){ Eq.team=i; try{ sessionStorage.setItem("buzgen_team",i); }catch(e){} jn.className=""; connecter(); rendreEq(); });
+        jl.appendChild(b); });
+      jn.className="on";
+    } else jn.className="";
+    clearInterval(Eq.timer); if(S.phase==="locked"&&S.deadline) Eq.timer=setInterval(rendreStatut,250);
+  }
+  function esc(x){ return String(x).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  /* effets au moment ou une equipe prend la main */
+  function etatChange(){
+    var S=Eq.S, k=S?(S.phase==="locked"?S.round+":"+S.winner:""):"";
+    if(k&&k!==Eq.last){
+      if(!muet) jouerSon(cfg.son);
+      var c=S.teams[S.winner].c;
+      flash.style.background="radial-gradient(circle,"+c+"aa,"+c+"dd)";
+      flash.classList.add("on"); void flash.offsetWidth; flash.classList.remove("on");
+      if(navigator.vibrate){ try{ navigator.vibrate(Eq.role==="team"&&Eq.team===S.winner?[200,80,200]:[80]); }catch(e){} }
+    }
+    Eq.last=k; rendreEq();
+  }
+  function buzzer(i){
+    if(i===null||i===undefined) return;
+    var S=Eq.S; if(!S||S.phase!=="open"||S.excluded.indexOf(i)>=0) return;
+    agir({type:"buzz",team:i});
+  }
+  function clavierEquipes(e){
+    if(Eq.role==="team"){ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); buzzer(Eq.team); } return; }
+    var k=e.key;
+    if(k===" "||k==="Enter"){ e.preventDefault(); agir({type:"open"}); }
+    else if(k==="g"||k==="G") agir({type:"good"});
+    else if(k==="m"||k==="M") agir({type:"bad"});
+    else if(Eq.role==="local"&&/^[1-8]$/.test(k)) buzzer(+k-1);
+  }
+  $("g_open").addEventListener("click",function(){ agir({type:"open"}); });
+  $("g_good").addEventListener("click",function(){ agir({type:"good"}); });
+  $("g_bad").addEventListener("click",function(){ agir({type:"bad"}); });
+  $("g_cancel").addEventListener("click",function(){ agir({type:"cancel"}); });
+  $("chg").addEventListener("click",function(){ Eq.team=null; try{ sessionStorage.removeItem("buzgen_team"); }catch(e){} connecter(); rendreEq(); });
+  window.addEventListener("resize",function(){ var z=$("eqZones"); if(z) z.dataset.k=""; if(Eq.S) rendreEq(); });
+
+  /* ----- reglages : mode et equipes ----- */
+  function remplirMode(){
+    var t=L(), box=$("modes"); box.innerHTML="";
+    [["jury","mode_jury"],["local","mode_local"],["reseau","mode_reseau"]].forEach(function(m){
+      var d=document.createElement("div"); d.className="mode"+(cfg.mode===m[0]?" sel":"");
+      d.innerHTML="<b>"+t[m[1]]+"</b><small>"+t[m[1]+"_d"]+"</small>";
+      d.addEventListener("click",function(){
+        if(cfg.mode===m[0]) return; cfg.mode=m[0]; sauver(); demarrerMode(); appliquer(); remplir();
+      });
+      box.appendChild(d);
+    });
+    var ni=$("netInfo");
+    if(cfg.mode==="reseau"){
+      if(Eq.dispo&&Eq.info) ni.textContent=t.net_ok+" "+t.net_teams+" "+(Eq.info.urls.join("   ")||"—");
+      else ni.textContent=t.net_need;
+    } else ni.textContent="";
+  }
+  function remplirEquipes(){
+    $("i_nbeq").value=String(cfg.nbEq); $("i_pts").value=cfg.points; $("i_rep").value=cfg.reponse; $("i_excl").checked=cfg.exclure!==false;
+    var box=$("eqRows"); box.innerHTML="";
+    for(var i=0;i<cfg.nbEq;i++){ (function(i){
+      var r=document.createElement("div"); r.className="eqrow";
+      var c=document.createElement("input"); c.type="color"; c.value=cfg.teams[i].c;
+      var n=document.createElement("input"); n.type="text"; n.maxLength=24; n.value=cfg.teams[i].n; n.placeholder=L().eq+" "+(i+1);
+      c.addEventListener("input",function(){ cfg.teams[i].c=c.value; majEquipes(); });
+      n.addEventListener("input",function(){ cfg.teams[i].n=n.value; majEquipes(); });
+      r.appendChild(c); r.appendChild(n); box.appendChild(r);
+    })(i); }
+  }
+  function majEquipes(){
+    sauver();
+    if(Eq.S&&Eq.role==="local") Moteur.appliquer(Eq.S,{type:"teams",list:teamDefs()},params(),Date.now());
+    if(Eq.role==="host") Moteur.appliquer(Eq.S,{type:"teams",list:teamDefs()},params(),Date.now());
+    rendreEq(); pousserConfig();
+  }
+  $("i_nbeq").addEventListener("change",function(){ cfg.nbEq=+this.value; sauver(); majEquipes(); remplirEquipes(); });
+  $("i_pts").addEventListener("input",function(){ cfg.points=this.value.replace(/\D/g,""); sauver(); pousserConfig(); });
+  $("i_rep").addEventListener("input",function(){ cfg.reponse=this.value.replace(/\D/g,""); sauver(); pousserConfig(); });
+  $("i_excl").addEventListener("change",function(){ cfg.exclure=this.checked; sauver(); pousserConfig(); });
+
+  /* ---------- demarrage ---------- */
+  charger();
+  var prem=premier();
+  if(/[?&]r=equipe/.test(location.search)){ Eq.role="team"; prem=false; }
+  // langue du navigateur au tout premier lancement
+  if(prem){ var nl=(navigator.language||"fr").slice(0,2); if(T[nl]) cfg.lang=nl; }
+  appliquer();
+  if(Eq.role==="team") demarrerEquipe(); else { if(prem) ouvrir(true); demarrerMode(); }
+})();
+</script>
+</body>
+</html>

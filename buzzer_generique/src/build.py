@@ -1,0 +1,6 @@
+s=open('src/app_pre.html',encoding='utf8').read()
+s=s.replace('/*MOTEUR*/',open('src/moteur.js',encoding='utf8').read())
+s=s.replace('/*EQUIPES*/',open('src/equipes.js',encoding='utf8').read())
+open('Buzzer_Jury_generique.html','w',encoding='utf8').write(s)
+open('serveur/Buzzer_Jury_generique.html','w',encoding='utf8').write(s)
+print(len(s))
